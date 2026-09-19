@@ -1,0 +1,21 @@
+# Bundler
+.bundle/
+vendor/bundle/
+
+# RubyGems
+*.gem
+pkg/
+
+# Logs and temp files
+*.log
+tmp/
+log/
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
