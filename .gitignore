@@ -5,6 +5,7 @@ vendor/bundle/
 # RubyGems
 *.gem
 pkg/
+Gemfile.lock
 
 # Logs and temp files
 *.log

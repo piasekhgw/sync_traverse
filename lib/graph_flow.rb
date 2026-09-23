@@ -2,3 +2,5 @@ require_relative "graph_flow/version"
 
 module GraphFlow
 end
+
+require_relative "graph_flow/flow"
