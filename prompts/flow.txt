@@ -43,5 +43,5 @@ When modifying an existing flow, inspect it with `get_flow` first.
 
 When creating a new flow:
 
-* use `create_single_node_flow` if it contains exactly one node
+* use `add_single_node` if it contains exactly one node
 * otherwise create it with `add_edges`

@@ -12,6 +12,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.0.0"
 
   spec.add_dependency "rgl", ">= 0.6.7"
+  spec.add_dependency "ruby_llm"
 
   spec.files = Dir["lib/**/*.rb", "README.md", ".gitignore"]
   spec.require_paths = ["lib"]

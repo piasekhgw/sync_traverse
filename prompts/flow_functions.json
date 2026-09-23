@@ -8,8 +8,8 @@
     }
   },
   {
-    "name": "create_single_node_flow",
-    "description": "Creates a new flow consisting of exactly one node and no edges. Use only when the complete flow has one node.",
+    "name": "add_single_node",
+    "description": "Adds a single node to the flow. Use only when the complete flow has exactly one node.",
     "parameters": {
       "type": "object",
       "properties": {

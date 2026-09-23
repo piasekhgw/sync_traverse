@@ -4,23 +4,36 @@ module GraphFlow
   class Flow
     attr_reader :transitions
 
-    def self.create_for_single_node(node_class_name)
-      new(
-        { node_class_name => {} },
-        RGL::BidirectionalAdjacencyGraph.new.tap {|graph| graph.add_vertex(node_class_name) }
-      )
+    def initialize(transitions = {})
+      @transitions = transitions
+      @rgl_graph = RGL::BidirectionalAdjacencyGraph.new
+
+      transitions.to_a.each do |source, targets_by_outcome|
+        add_node(source)
+        add_edges(targets_by_outcome.map { |outcome, target| [source, target, outcome] })
+      end
     end
 
-    def initialize(transitions = {}, rgl_graph = nil)
-      @transitions = transitions
-      @rgl_graph = rgl_graph || RGL::BidirectionalAdjacencyGraph[*rgl_graph_edges]
+    def add_node(node)
+      transitions[node] ||= {}
+
+      rgl_graph.add_vertex(node)
+    end
+
+    def remove_node(node)
+      transitions.delete(node)
+      transitions.each_value { |targets_by_outcome| targets_by_outcome.delete_if { |_, target| target == node } }
+
+      rgl_graph.remove_vertex(node)
     end
 
     def add_edges(edges)
       edges.each do |edge|
         source, target, label = edge
 
-        transitions[source] ||= {}
+        add_node(source)
+        add_node(target)
+
         transitions[source][label] = target
 
         rgl_graph.add_edge(source, target)
@@ -31,14 +44,12 @@ module GraphFlow
       edges.each do |edge|
         source, target, label = edge
 
-        if transitions.key?(source)
-          transitions[source].delete(label)
-          transitions.delete(source) if transitions[source].empty?
-        end
+        transitions[source].delete(label)
 
         rgl_graph.remove_edge(source, target)
-        remove_rgl_vertex_if_isolated(source)
-        remove_rgl_vertex_if_isolated(target)
+
+        remove_node_if_isolated(source)
+        remove_node_if_isolated(target)
       end
     end
 
@@ -46,16 +57,10 @@ module GraphFlow
 
     attr_reader :rgl_graph
 
-    def rgl_graph_edges
-      transitions.flat_map do |source_node_class_name, target_nodes_by_outcome|
-        [source_node_class_name].product(target_nodes_by_outcome.values)
-      end
-    end
+    def remove_node_if_isolated(node)
+      return if rgl_graph.out_degree(node).positive? || rgl_graph.in_degree(node).positive?
 
-    def remove_rgl_vertex_if_isolated(vertex)
-      return if rgl_graph.out_degree(vertex).positive? || rgl_graph.in_degree(vertex).positive?
-
-      rgl_graph.remove_vertex(vertex)
+      remove_node(node)
     end
   end
 end
