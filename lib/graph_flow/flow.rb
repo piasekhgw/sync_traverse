@@ -22,7 +22,9 @@ module GraphFlow
 
     def remove_node(node)
       transitions.delete(node)
-      transitions.each_value { |targets_by_outcome| targets_by_outcome.delete_if { |_, target| target == node } }
+      transitions.each_value do |targets_by_outcome|
+        targets_by_outcome.delete_if { |_, target| target == node }
+      end
 
       rgl_graph.remove_vertex(node)
     end
