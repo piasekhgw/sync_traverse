@@ -5,7 +5,7 @@ module GraphFlow
 
       def get_flow(flow_name)
         flow_file_path = flow_path(flow_name)
-        flow_definition = JSON.parse(File.read(flow_file_path))
+        flow_definition = File.exist?(flow_file_path) ? JSON.parse(File.read(flow_file_path)) : {}
 
         GraphFlow::Flow.new(flow_definition)
       end

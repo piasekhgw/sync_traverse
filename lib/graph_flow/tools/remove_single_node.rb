@@ -2,10 +2,9 @@ module GraphFlow
   module Tools
     class RemoveSingleNode < Base
       description "Removes the only node in the flow. Use only when the flow has exactly one node."
-      parameter :node, description: "The snake_case node name."
-
-      def self.tool_name
-        "remove_single_node"
+      parameters do
+        string :flow_name, description: "The flow name."
+        string :node, description: "The snake_case node name."
       end
 
       def execute(flow_name:, node:)

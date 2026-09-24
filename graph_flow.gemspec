@@ -14,6 +14,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rgl", ">= 0.6.7"
   spec.add_dependency "ruby_llm"
 
+  spec.add_development_dependency "debug"
+
   spec.files = Dir["lib/**/*.rb", "README.md", ".gitignore"]
   spec.require_paths = ["lib"]
 end
