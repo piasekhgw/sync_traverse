@@ -2,27 +2,27 @@ require 'rgl/bidirectional_adjacency'
 
 module GraphFlow
   class Flow
-    attr_reader :transitions
+    attr_reader :definition
 
-    def initialize(transitions = {})
-      @transitions = transitions
+    def initialize(definition = {})
+      @definition = definition
       @rgl_graph = RGL::BidirectionalAdjacencyGraph.new
 
-      transitions.to_a.each do |source, targets_by_outcome|
+      definition.to_a.each do |source, targets_by_outcome|
         add_node(source)
         add_edges(targets_by_outcome.map { |outcome, target| [source, target, outcome] })
       end
     end
 
     def add_node(node)
-      transitions[node] ||= {}
+      definition[node] ||= {}
 
       rgl_graph.add_vertex(node)
     end
 
     def remove_node(node)
-      transitions.delete(node)
-      transitions.each_value do |targets_by_outcome|
+      definition.delete(node)
+      definition.each_value do |targets_by_outcome|
         targets_by_outcome.delete_if { |_, target| target == node }
       end
 
@@ -36,7 +36,7 @@ module GraphFlow
         add_node(source)
         add_node(target)
 
-        transitions[source][label] = target
+        definition[source][label] = target
 
         rgl_graph.add_edge(source, target)
       end
@@ -46,7 +46,7 @@ module GraphFlow
       edges.each do |edge|
         source, target, label = edge
 
-        transitions[source].delete(label)
+        definition[source].delete(label)
 
         rgl_graph.remove_edge(source, target)
 
