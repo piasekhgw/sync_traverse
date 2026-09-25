@@ -1,25 +1,41 @@
 module GraphFlow
   module Tools
-    class Base < RubyLLM::Tool
-      private
+    class Base < MCP::Tool
+      EDGE_SCHEMA = {
+        type: "object",
+        properties: {
+          source: { type: "string", description: "Source node name." },
+          target: { type: "string", description: "Target node name." },
+          source_outcome: { type: "string", description: "Outcome returned by the source node that selects this edge." }
+        },
+        required: ["source", "target", "source_outcome"]
+      }.freeze
 
-      def get_flow(flow_name)
-        flow_file_path = flow_path(flow_name)
-        flow_definition = File.exist?(flow_file_path) ? JSON.parse(File.read(flow_file_path)) : {}
+      class << self
+        private
 
-        GraphFlow::Flow.new(flow_definition)
-      end
+        def get_flow(flow_name)
+          flow_file_path = flow_path(flow_name)
+          flow_definition = File.exist?(flow_file_path) ? JSON.parse(File.read(flow_file_path)) : {}
 
-      def save_flow(flow_name, flow)
-        File.write(flow_path(flow_name), JSON.pretty_generate(flow.definition))
-      end
+          GraphFlow::Flow.new(flow_definition)
+        end
 
-      def flow_path(flow_name)
-        File.join(flows_dir, "#{flow_name}.json")
-      end
+        def save_flow(flow_name, flow)
+          File.write(flow_path(flow_name), JSON.pretty_generate(flow.definition))
+        end
 
-      def flows_dir
-        'lib/flows' # TODO: Replace with a configuration variable
+        def flow_path(flow_name)
+          File.join(flows_dir, "#{flow_name}.json")
+        end
+
+        def flows_dir
+          'lib/flows' # TODO: Replace with a configuration variable
+        end
+
+        def text_response(payload)
+          MCP::Tool::Response.new([{ type: "text", text: JSON.pretty_generate(payload) }])
+        end
       end
     end
   end
