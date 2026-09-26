@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "graph_flow": {
-      "command": "bundle",
-      "args": ["exec", "graph_flow", "mcp"]
+      "command": "bash",
+      "args": ["-lc", "bundle exec graph_flow mcp"]
     }
   }
 }
