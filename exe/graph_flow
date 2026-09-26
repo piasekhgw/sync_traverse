@@ -10,7 +10,11 @@ when "mcp"
     GraphFlow::Tools::AddSingleNode,
     GraphFlow::Tools::RemoveSingleNode,
     GraphFlow::Tools::AddEdges,
-    GraphFlow::Tools::RemoveEdges
+    GraphFlow::Tools::RemoveEdges,
+    GraphFlow::Tools::RemoveFlow,
+    GraphFlow::Tools::GetNodeCode,
+    GraphFlow::Tools::UpsertNodeCode,
+    GraphFlow::Tools::RemoveNodeCode
   ]
 
   server = MCP::Server.new(name: "graph_flow", tools: tools)
