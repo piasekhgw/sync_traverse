@@ -5,7 +5,7 @@ module GraphFlow
       description "Removes the flow file for the given flow_name. Call this when deleting a flow."
       input_schema(
         properties: {
-          flow_name: { type: "string", description: "The flow name." }
+          flow_name: { type: "string", description: "The flow name. May be namespaced with a path, for example 'orders/validate_order'." }
         },
         required: ["flow_name"]
       )

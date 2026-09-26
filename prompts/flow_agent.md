@@ -54,6 +54,8 @@ Avoid low-level implementation detail names.
 
 Use concise, meaningful snake_case outcomes such as `success`, `not_found`, `valid`, `invalid`, `paid`, or `declined`.
 
+Flow names are snake_case and may be namespaced with a path, for example `orders/validate_order`.
+
 # Tool usage
 
 ## Flow

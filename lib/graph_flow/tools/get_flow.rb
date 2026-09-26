@@ -5,7 +5,7 @@ module GraphFlow
       description "Returns the complete flow for the given flow_name. Call this before modifying an existing flow."
       input_schema(
         properties: {
-          flow_name: { type: "string", description: "The flow name." }
+          flow_name: { type: "string", description: "The flow name. May be namespaced with a path, for example 'orders/validate_order'." }
         },
         required: ["flow_name"]
       )

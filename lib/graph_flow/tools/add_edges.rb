@@ -5,7 +5,7 @@ module GraphFlow
       description "Adds edges to the flow. Referenced nodes are created automatically."
       input_schema(
         properties: {
-          flow_name: { type: "string", description: "The flow name." },
+          flow_name: { type: "string", description: "The flow name. May be namespaced with a path, for example 'orders/validate_order'." },
           edges: { type: "array", items: EDGE_SCHEMA }
         },
         required: ["flow_name", "edges"]

@@ -25,7 +25,9 @@ module GraphFlow
         end
 
         def save_flow(flow_name, flow)
-          File.write(flow_path(flow_name), JSON.pretty_generate(flow.definition))
+          flow_file_path = flow_path(flow_name)
+          FileUtils.mkdir_p(File.dirname(flow_file_path))
+          File.write(flow_file_path, JSON.pretty_generate(flow.definition))
         end
 
         def remove_flow(flow_name)
@@ -37,23 +39,27 @@ module GraphFlow
         end
 
         def get_node_code(node_class_name)
-          node_file_path = File.join(nodes_dir, "#{node_class_name.underscore}.rb")
+          node_file_path = node_path(node_class_name)
           File.exist?(node_file_path) ? File.read(node_file_path) : nil
         end
 
         def upsert_node_code(node_class_name, code)
-          node_file_path = File.join(nodes_dir, "#{node_class_name.underscore}.rb")
+          node_file_path = node_path(node_class_name)
           FileUtils.mkdir_p(File.dirname(node_file_path))
           File.write(node_file_path, code)
           true
         end
 
         def remove_node_code(node_class_name)
-          node_file_path = File.join(nodes_dir, "#{node_class_name.underscore}.rb")
+          node_file_path = node_path(node_class_name)
           return false unless File.exist?(node_file_path)
 
           File.delete(node_file_path)
           true
+        end
+
+        def node_path(node_class_name)
+          File.join(nodes_dir, "#{node_class_name.underscore}.rb")
         end
 
         def flow_path(flow_name)

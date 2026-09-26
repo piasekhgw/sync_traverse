@@ -5,7 +5,7 @@ module GraphFlow
       description "Adds a single node to the flow. Use only when the complete flow has exactly one node."
       input_schema(
         properties: {
-          flow_name: { type: "string", description: "The flow name." },
+          flow_name: { type: "string", description: "The flow name. May be namespaced with a path, for example 'orders/validate_order'." },
           node: { type: "string", description: "The snake_case node name." }
         },
         required: ["flow_name", "node"]
