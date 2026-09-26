@@ -5,7 +5,7 @@ module GraphFlow
       description "Creates or replaces the code for the given node class."
       input_schema(
         properties: {
-          node: { type: "string", description: "The node class name in CamelCase. It may be namespaced (for example, Billing::ChargePayment)." },
+          node: { type: "string", description: "The node class name in CamelCase. It maps to a relative file path and may be namespaced (for example, Billing::ChargePayment)." },
           code: { type: "string", description: "The complete Ruby source code of the node class." }
         },
         required: ["node", "code"]

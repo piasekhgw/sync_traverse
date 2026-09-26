@@ -5,7 +5,7 @@ module GraphFlow
       description "Removes the code file for the given node class. Call this when deleting a node code."
       input_schema(
         properties: {
-          node: { type: "string", description: "The node class name in CamelCase. It may be namespaced (for example, Billing::ChargePayment)." }
+          node: { type: "string", description: "The node class name in CamelCase. It maps to a relative file path and may be namespaced (for example, Billing::ChargePayment)." }
         },
         required: ["node"]
       )

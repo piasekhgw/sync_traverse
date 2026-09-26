@@ -36,7 +36,7 @@ If handing work off asynchronously is an important part of the current process, 
 
 Node names must be Ruby class names in CamelCase, representing application-level operations.
 
-Node names may be namespaced with domain modules when useful, for example `Billing::ChargePayment` or `Orders::ValidateOrder`.
+Node names may be namespaced with domain modules when useful, for example `Billing::ChargePayment` or `Orders::ValidateOrder`. This maps to a relative file path, so it must not escape the nodes directory (for example via `../`).
 
 Good node names:
 
@@ -54,7 +54,7 @@ Avoid low-level implementation detail names.
 
 Use concise, meaningful snake_case outcomes such as `success`, `not_found`, `valid`, `invalid`, `paid`, or `declined`.
 
-Flow names are snake_case and may be namespaced with a path, for example `orders/validate_order`.
+Flow names are snake_case and may be namespaced with a path, for example `orders/validate_order`. This is a relative file path, so it must not escape the flows directory (for example via `../`).
 
 # Tool usage
 
@@ -72,8 +72,6 @@ When modifying a flow:
 - use `add_edges` to add edges; referenced nodes are created automatically
 - use `remove_edges` to remove edges; nodes that become isolated are removed automatically
 - use `remove_single_node` only when the flow has exactly one node
-
-Use `remove_flow` to delete the entire flow.
 
 ## Node code
 

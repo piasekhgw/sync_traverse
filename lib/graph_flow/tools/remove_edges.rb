@@ -5,7 +5,7 @@ module GraphFlow
       description "Removes edges from the flow. Nodes that become isolated are removed automatically."
       input_schema(
         properties: {
-          flow_name: { type: "string", description: "The flow name. May be namespaced with a path, for example 'orders/validate_order'." },
+          flow_name: { type: "string", description: "The flow name. Must be a relative path; may be namespaced with a path, for example 'orders/validate_order'." },
           edges: { type: "array", items: EDGE_SCHEMA }
         },
         required: ["flow_name", "edges"]
