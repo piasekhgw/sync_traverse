@@ -19,7 +19,9 @@ when "mcp"
   server = MCP::Server.new(name: "graph_flow", tools: tools)
   transport = MCP::Server::Transports::StdioTransport.new(server)
   transport.open
+when "install"
+  GraphFlow::Installer.new.install
 else
-  warn "Usage: graph_flow mcp"
+  warn "Usage: graph_flow mcp|install"
   exit 1
 end

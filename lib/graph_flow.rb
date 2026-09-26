@@ -6,6 +6,7 @@ module GraphFlow
 end
 
 require_relative "graph_flow/flow"
+require_relative "graph_flow/installer"
 require_relative "graph_flow/tools/base"
 require_relative "graph_flow/tools/get_flow"
 require_relative "graph_flow/tools/add_single_node"

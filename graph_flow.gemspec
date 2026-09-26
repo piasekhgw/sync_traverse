@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "debug"
 
-  spec.files = Dir["lib/**/*.rb", "exe/*", "README.md", ".gitignore"]
+  spec.files = Dir["lib/**/*.rb", "templates/**/*", "prompts/**/*", "exe/*", "README.md", ".gitignore"]
   spec.bindir = "exe"
   spec.executables = ["graph_flow"]
   spec.require_paths = ["lib"]
