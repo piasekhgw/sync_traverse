@@ -94,6 +94,14 @@ Use `update_flow` to change the flow. Make each logical change in a single call:
 
 A flow with a single node consists only of that node's terminal edges.
 
+## Changing flow structure and node code together
+
+When a change affects both the flow structure and node code, do it in this order:
+
+1. Update the flow structure first with `update_flow`. The edges define which outcomes each affected node must return.
+2. Write or update the code for each new or changed node with `update_node_code`, so it returns exactly the outcomes present in the flow for that node.
+3. Before finishing, re-check each node you touched with `get_node_code` against the edges from `get_flow`: every outcome the code can return must have a matching edge, and the code must not return any outcome without one.
+
 ## Node code
 
 Before modifying an existing node's code, inspect it with `get_node_code`.
