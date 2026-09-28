@@ -5,6 +5,7 @@ require_relative "graph_flow/version"
 module GraphFlow
 end
 
+require_relative "graph_flow/config"
 require_relative "graph_flow/flow"
 require_relative "graph_flow/installer"
 require_relative "graph_flow/pruner"

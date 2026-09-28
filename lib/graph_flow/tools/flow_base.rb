@@ -32,7 +32,7 @@ module GraphFlow
         end
 
         def flows_dir
-          'flows' # TODO: Replace with a configuration variable
+          GraphFlow.config.flows_dir
         end
       end
     end

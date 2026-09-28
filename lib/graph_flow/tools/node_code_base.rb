@@ -18,7 +18,7 @@ module GraphFlow
         end
 
         def nodes_dir
-          'nodes' # TODO: Replace with a configuration variable
+          GraphFlow.config.nodes_dir
         end
       end
     end
