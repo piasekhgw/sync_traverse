@@ -11,7 +11,9 @@ module GraphFlow
       )
 
       def self.call(node:, server_context:)
-        text_response(get_node_code(node))
+        with_input_validation(node_names: [node]) do
+          text_response(JSON.pretty_generate(get_node_code(node)))
+        end
       end
     end
   end

@@ -11,7 +11,9 @@ module GraphFlow
       )
 
       def self.call(flow_name:, server_context:)
-        text_response(get_flow(flow_name).definition)
+        with_input_validation(flow_name: flow_name) do
+          text_response(JSON.pretty_generate(get_flow(flow_name).definition))
+        end
       end
     end
   end

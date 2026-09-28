@@ -23,9 +23,12 @@ module GraphFlow
           write_file(flow_path(flow_name), JSON.pretty_generate(flow.definition))
         end
 
-        # TODO: Validate that flow_name does not escape flows_dir (e.g. via "../").
         def flow_path(flow_name)
           File.join(flows_dir, flow_name, "definition.json")
+        end
+
+        def edge_node_names(edges)
+          edges.flat_map { |edge| edge.values_at(:source, :target) }
         end
 
         def flows_dir

@@ -12,7 +12,10 @@ module GraphFlow
       )
 
       def self.call(node:, code:, server_context:)
-        text_response(update_node_code(node, code))
+        with_input_validation(node_names: [node]) do
+          update_node_code(node, code)
+          text_response('ok')
+        end
       end
     end
   end

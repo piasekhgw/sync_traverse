@@ -13,7 +13,6 @@ module GraphFlow
           write_file(node_path(node_name), code)
         end
 
-        # TODO: Validate that node_name does not escape nodes_dir (e.g. via "../").
         def node_path(node_name)
           File.join(nodes_dir, "#{node_name}.rb")
         end

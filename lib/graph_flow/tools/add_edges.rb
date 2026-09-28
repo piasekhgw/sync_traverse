@@ -12,12 +12,14 @@ module GraphFlow
       )
 
       def self.call(flow_name:, edges:, server_context:)
-        flow = get_flow(flow_name)
+        with_input_validation(flow_name: flow_name, node_names: edge_node_names(edges)) do
+          flow = get_flow(flow_name)
 
-        flow.add_edges(edges.map { |edge| edge.values_at(:source, :target, :source_outcome) })
+          flow.add_edges(edges)
 
-        save_flow(flow_name, flow)
-        text_response(flow.definition)
+          save_flow(flow_name, flow)
+          text_response('ok')
+        end
       end
     end
   end

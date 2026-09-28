@@ -7,7 +7,8 @@ module GraphFlow
     end
 
     def add_edges(edges)
-      edges.each do |source, target, outcome|
+      edges.each do |edge|
+        source, target, outcome = edge.values_at(:source, :target, :source_outcome)
         definition[source] ||= {}
         definition[target] ||= {} unless target.nil?
         definition[source][outcome] = target
@@ -15,7 +16,8 @@ module GraphFlow
     end
 
     def remove_edges(edges)
-      edges.each do |source, target, outcome|
+      edges.each do |edge|
+        source, target, outcome = edge.values_at(:source, :target, :source_outcome)
         definition[source].delete(outcome)
         remove_node_if_isolated(source)
         remove_node_if_isolated(target) unless target.nil?

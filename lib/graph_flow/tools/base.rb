@@ -3,17 +3,29 @@ require "fileutils"
 module GraphFlow
   module Tools
     class Base < MCP::Tool
+      NAME_PATTERN = %r{\A[a-z0-9_]+(/[a-z0-9_]+)*\z}
+
       class << self
         private
 
         def write_file(path, content)
           FileUtils.mkdir_p(File.dirname(path))
           File.write(path, content)
-          true
         end
 
-        def text_response(payload)
-          MCP::Tool::Response.new([{ type: "text", text: JSON.pretty_generate(payload) }])
+        def text_response(message)
+          MCP::Tool::Response.new([{ type: "text", text: message }])
+        end
+
+        def error_response(message)
+          MCP::Tool::Response.new([{ type: "text", text: message }], error: true)
+        end
+
+        def with_input_validation(flow_name: nil, node_names: [])
+          invalid_names = [flow_name, *node_names].compact.uniq.reject { |name| name.match?(NAME_PATTERN) }
+          return error_response("Invalid name(s): #{invalid_names.join(', ')}") if invalid_names.any?
+
+          yield
         end
       end
     end
