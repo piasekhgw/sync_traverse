@@ -94,6 +94,8 @@ Use `update_flow` to change the flow. Make each logical change in a single call:
 
 A flow with a single node consists only of that node's terminal edges.
 
+After successfully saving flow changes with `update_flow`, render the current flow (fetch with `get_flow` if needed) as a Mermaid `flowchart` diagram and save it with `store_flow_diagram`. Use each node name as both id and label, and label each arrow with its outcome; represent each `null` target as its own distinct terminal node (do not merge them into a shared node), for example `((End))`.
+
 ## Changing flow structure and node code together
 
 When a change affects both the flow structure and node code, do it in this order:

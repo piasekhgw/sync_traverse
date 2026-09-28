@@ -8,6 +8,7 @@ when "mcp"
   tools = [
     GraphFlow::Tools::GetFlow,
     GraphFlow::Tools::UpdateFlow,
+    GraphFlow::Tools::StoreFlowDiagram,
     GraphFlow::Tools::GetNodeCode,
     GraphFlow::Tools::UpdateNodeCode
   ]
