@@ -1,11 +1,11 @@
 module GraphFlow
   module Tools
-    class GetNodeCode < Base
+    class GetNodeCode < NodeCodeBase
       tool_name "get_node_code"
-      description "Returns the code for the given node class. Call this before modifying a node code."
+      description "Returns the code for the given node. Call this before modifying a node code."
       input_schema(
         properties: {
-          node: { type: "string", description: "The node class name in CamelCase. It maps to a relative file path and may be namespaced (for example, Billing::ChargePayment)." }
+          node: { type: "string", description: "The node name in snake_case. Must be a relative path; may be namespaced with a path, for example 'orders/validate_order'." }
         },
         required: ["node"]
       )

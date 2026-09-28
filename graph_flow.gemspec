@@ -13,7 +13,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "rgl", ">= 0.6.7"
   spec.add_dependency "mcp"
-  spec.add_dependency "activesupport"
 
   spec.add_development_dependency "debug"
 

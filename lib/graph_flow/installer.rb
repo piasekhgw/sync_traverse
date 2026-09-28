@@ -13,7 +13,7 @@ module GraphFlow
       File.join(TEMPLATES_DIR, "agents", "claude.md.erb") => File.join(".claude", "agents", "graph.md")
     }.freeze
 
-    def install(root_dir: Dir.pwd)
+    def run(root_dir: Dir.pwd)
       body = File.read(PROMPT_PATH)
 
       TARGETS.each do |template_path, relative_target|
@@ -22,7 +22,7 @@ module GraphFlow
 
         FileUtils.mkdir_p(File.dirname(target_path))
         File.write(target_path, content)
-        puts "wrote #{relative_target}"
+        puts "#{relative_target} created"
       end
     end
 
