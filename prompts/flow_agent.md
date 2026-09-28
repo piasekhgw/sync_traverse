@@ -87,6 +87,8 @@ When modifying an existing flow, inspect it with `get_flow` first.
 
 Use `update_flow` to change the flow. Make each logical change in a single call: pass the edges to remove in `remove_edges` and the edges to add (including terminal ones) in `add_edges`. Removals are applied before additions.
 
+`update_flow` rejects the whole call, without saving anything, if the resulting flow would be invalid. To change the target of an existing outcome, remove the old edge and add the new one in the same call.
+
 - referenced nodes are created automatically
 - nodes that become isolated are removed automatically
 

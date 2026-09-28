@@ -7,6 +7,7 @@ end
 
 require_relative "graph_flow/config"
 require_relative "graph_flow/flow"
+require_relative "graph_flow/graph_validator"
 require_relative "graph_flow/installer"
 require_relative "graph_flow/pruner"
 require_relative "graph_flow/tools/base"

@@ -19,9 +19,14 @@ module GraphFlow
           flow.remove_edges(remove_edges)
           flow.add_edges(add_edges)
 
+          graph_errors = GraphValidator.new(flow.definition).run
+          return error_response(graph_errors.join("\n")) if graph_errors.any?
+
           save_flow(flow_name, flow)
           text_response('ok')
         end
+      rescue Flow::ConflictError => e
+        error_response(e.message)
       end
     end
   end
