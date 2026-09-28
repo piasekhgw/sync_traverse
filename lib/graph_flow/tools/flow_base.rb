@@ -15,15 +15,15 @@ module GraphFlow
         private
 
         def get_flow(flow_name)
-          path = flow_path(flow_name)
+          path = flow_definition_path(flow_name)
           GraphFlow::Flow.new(File.exist?(path) ? JSON.parse(File.read(path)) : {})
         end
 
         def save_flow(flow_name, flow)
-          write_file(flow_path(flow_name), JSON.pretty_generate(flow.definition))
+          write_file(flow_definition_path(flow_name), JSON.pretty_generate(flow.definition))
         end
 
-        def flow_path(flow_name)
+        def flow_definition_path(flow_name)
           File.join(flows_dir, flow_name, "definition.json")
         end
 
