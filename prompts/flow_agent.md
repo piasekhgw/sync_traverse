@@ -85,8 +85,10 @@ Use file-reading/search tools (e.g. `Read`, `Glob`, `Grep`) only to inspect the 
 
 When modifying an existing flow, inspect it with `get_flow` first.
 
-- use `add_edges` to add edges, including terminal ones; referenced nodes are created automatically
-- use `remove_edges` to remove edges; nodes that become isolated are removed automatically
+Use `update_flow` to change the flow. Make each logical change in a single call: pass the edges to remove in `remove_edges` and the edges to add (including terminal ones) in `add_edges`. Removals are applied before additions.
+
+- referenced nodes are created automatically
+- nodes that become isolated are removed automatically
 
 A flow with a single node consists only of that node's terminal edges.
 
