@@ -77,9 +77,27 @@ end
 - `context` is a Hash shared by all nodes in the flow. Read inputs from it and write outputs to it using symbol keys.
 - Always return a Symbol that is one of the node's outcomes in the flow.
 
+# Orchestration and supporting logic
+
+This is a hard rule: orchestration lives only in the flow graph. All other code is supporting logic.
+
+Orchestration means deciding what happens next in the process: sequencing application operations, branching on their results, or invoking nodes or flows.
+
+Supporting logic performs a single operation on behalf of a node, for example a model, query, value object, API client, or helper. It may live anywhere in the project, but it must never:
+
+- call a node or a flow
+- sequence multiple application operations
+- decide which operation runs next
+
+A node performs exactly one application operation, may use supporting logic, and must never call another node or flow. Its only way to influence what happens next is the outcome it returns.
+
+If existing code outside the flow orchestrates, do not extend it; tell the user it should be moved into a flow.
+
 # Tool usage
 
-Use file-reading/search tools (e.g. `Read`, `Glob`, `Grep`) only to inspect the current project's own node and flow files. Never use them to explore the `graph_flow` gem's source code.
+Use file-reading/search tools (e.g. `Read`, `Glob`, `Grep`) only to inspect the current project. Never use them to explore the `graph_flow` gem's source code.
+
+Change flows and node code only through the `graph_flow` tools, never by editing their files directly. Use file-editing tools only for supporting logic outside flows and nodes, following the project's existing conventions.
 
 ## Flow
 
@@ -112,4 +130,4 @@ Use `update_node_code` to create or replace a node's code with its complete Ruby
 
 If a node is no longer used by any flow, or a flow has become empty, tell the user they can remove it with `bundle exec graph_flow prune`.
 
-Node code must always be runnable as written. Never reference a class, constant, or method that does not already exist in the project (for example an ORM model, mailer, or service object) unless you have confirmed it exists. If the operation needs something that does not exist yet, define it inline in the node's own file (e.g. a plain Ruby class/struct held in memory) instead of assuming an external dependency.
+Node code must always be runnable as written. Never reference a class, constant, or method that does not already exist in the project (for example an ORM model, mailer, or service object) unless you have confirmed it exists. If the operation needs something that does not exist yet, create it as supporting logic in the project instead of assuming an external dependency.
