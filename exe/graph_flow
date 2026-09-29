@@ -17,10 +17,15 @@ when "mcp"
   transport = MCP::Server::Transports::StdioTransport.new(server)
   transport.open
 when "install"
-  GraphFlow::Installer.new.run
+  begin
+    GraphFlow::Installer.new.run(ARGV[1])
+  rescue ArgumentError => e
+    warn e.message
+    exit 1
+  end
 when "prune"
   GraphFlow::Pruner.new.run
 else
-  warn "Usage: graph_flow mcp|install|prune"
+  warn "Usage: graph_flow mcp|install copilot|claude|prune"
   exit 1
 end

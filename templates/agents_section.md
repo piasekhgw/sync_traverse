@@ -1,0 +1,7 @@
+## Graph Flow
+
+Changes to application flows and their nodes are owned by the **Graph Flow** agent. Delegate to it (do not edit flow or node files directly) whenever a task involves designing, modifying, or inspecting a flow or its nodes.
+
+- Flow definitions and node implementations are managed by the Graph Flow agent under its own configured directories; do not assume fixed paths for them.
+- Application control flow is represented explicitly by flows.
+- Each flow is a synchronous DAG with exactly one source node.
