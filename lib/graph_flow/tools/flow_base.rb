@@ -27,7 +27,7 @@ module GraphFlow
           File.join(flows_dir, flow_name, "definition.json")
         end
 
-        def diagram_path(flow_name)
+        def flow_diagram_path(flow_name)
           File.join(flows_dir, flow_name, "diagram.mmd")
         end
 

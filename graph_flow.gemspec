@@ -12,9 +12,11 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.0.0"
 
   spec.add_dependency "rgl", ">= 0.6.7"
-  spec.add_dependency "mcp"
+  spec.add_dependency "mcp", ">= 1.5.1"
 
   spec.add_development_dependency "debug"
+  spec.add_development_dependency "minitest"
+  spec.add_development_dependency "rake"
 
   spec.files = Dir["lib/**/*.rb", "templates/**/*", "prompts/**/*", "exe/*", "README.md", ".gitignore"]
   spec.bindir = "exe"

@@ -13,7 +13,7 @@ module GraphFlow
 
       def self.call(flow_name:, diagram:, server_context:)
         with_input_validation(flow_name: flow_name) do
-          write_file(diagram_path(flow_name), diagram)
+          write_file(flow_diagram_path(flow_name), diagram)
           text_response('ok')
         end
       end
