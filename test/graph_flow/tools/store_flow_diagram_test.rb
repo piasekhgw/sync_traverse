@@ -10,7 +10,7 @@ module GraphFlow
           server_context: {}
         )
 
-        refute response.error?
+        refute_predicate response, :error?
         assert_equal "ok", response.content.first[:text]
         assert_equal "flowchart TD\n  a --> b", File.read(flow_diagram_path("orders/purchase"))
       end
@@ -27,7 +27,7 @@ module GraphFlow
       def test_rejects_invalid_flow_name
         response = StoreFlowDiagram.call(flow_name: "../escape", diagram: "flowchart TD", server_context: {})
 
-        assert response.error?
+        assert_predicate response, :error?
         assert_equal "Invalid name(s): ../escape", response.content.first[:text]
       end
     end

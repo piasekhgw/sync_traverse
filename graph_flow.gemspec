@@ -10,13 +10,10 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://example.com/graph_flow"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.0.0"
+  spec.metadata["rubygems_mfa_required"] = "true"
 
-  spec.add_dependency "rgl", ">= 0.6.7"
   spec.add_dependency "mcp", ">= 1.5.1"
-
-  spec.add_development_dependency "debug"
-  spec.add_development_dependency "minitest"
-  spec.add_development_dependency "rake"
+  spec.add_dependency "rgl", ">= 0.6.7"
 
   spec.files = Dir["lib/**/*.rb", "templates/**/*", "prompts/**/*", "exe/*", "README.md", ".gitignore"]
   spec.bindir = "exe"

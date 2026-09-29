@@ -13,17 +13,17 @@ module GraphFlow
     def test_installs_copilot_target
       Installer.new.run("copilot", root_dir: @root_dir)
 
-      assert File.exist?(File.join(@root_dir, ".mcp.json"))
-      assert File.exist?(File.join(@root_dir, ".github", "agents", "graph.agent.md"))
-      assert File.exist?(File.join(@root_dir, "AGENTS.md"))
+      assert_path_exists File.join(@root_dir, ".mcp.json")
+      assert_path_exists File.join(@root_dir, ".github", "agents", "graph.agent.md")
+      assert_path_exists File.join(@root_dir, "AGENTS.md")
     end
 
     def test_installs_claude_target
       Installer.new.run("claude", root_dir: @root_dir)
 
-      assert File.exist?(File.join(@root_dir, ".mcp.json"))
-      assert File.exist?(File.join(@root_dir, ".claude", "agents", "graph.md"))
-      assert File.exist?(File.join(@root_dir, "AGENTS.md"))
+      assert_path_exists File.join(@root_dir, ".mcp.json")
+      assert_path_exists File.join(@root_dir, ".claude", "agents", "graph.md")
+      assert_path_exists File.join(@root_dir, "AGENTS.md")
     end
 
     def test_raises_for_unknown_target
@@ -46,6 +46,7 @@ module GraphFlow
       Installer.new.run("claude", root_dir: @root_dir)
 
       content = File.read(File.join(@root_dir, "AGENTS.md"))
+
       assert content.start_with?("# My Project")
       assert_includes content, "Graph Flow"
     end

@@ -7,7 +7,7 @@ module GraphFlow
 
       Pruner.new.run
 
-      refute File.exist?(flow_definition_path("orders/purchase"))
+      refute_path_exists flow_definition_path("orders/purchase")
     end
 
     def test_keeps_non_empty_flow_definition
@@ -15,7 +15,7 @@ module GraphFlow
 
       Pruner.new.run
 
-      assert File.exist?(flow_definition_path("orders/purchase"))
+      assert_path_exists flow_definition_path("orders/purchase")
     end
 
     def test_removes_node_unused_by_any_flow
@@ -23,7 +23,7 @@ module GraphFlow
 
       Pruner.new.run
 
-      refute File.exist?(node_path("orders/unused_node"))
+      refute_path_exists node_path("orders/unused_node")
     end
 
     def test_keeps_node_used_by_a_flow
@@ -32,7 +32,7 @@ module GraphFlow
 
       Pruner.new.run
 
-      assert File.exist?(node_path("orders/validate_order"))
+      assert_path_exists node_path("orders/validate_order")
     end
 
     def test_removes_empty_directories_left_behind

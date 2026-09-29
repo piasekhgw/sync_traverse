@@ -1,6 +1,6 @@
 module GraphFlow
   class Flow
-    ConflictError = Class.new(StandardError)
+    class ConflictError < StandardError; end
 
     attr_reader :definition
 
@@ -12,7 +12,8 @@ module GraphFlow
       edges.each do |edge|
         source, target, outcome = edge.values_at(:source, :target, :source_outcome)
         if definition[source]&.key?(outcome) && definition[source][outcome] != target
-          raise ConflictError, "Outcome '#{outcome}' of node '#{source}' already targets '#{definition[source][outcome]}'; remove that edge first"
+          raise ConflictError,
+                "Outcome '#{outcome}' of node '#{source}' already targets '#{definition[source][outcome]}'; remove that edge first"
         end
 
         definition[source] ||= {}

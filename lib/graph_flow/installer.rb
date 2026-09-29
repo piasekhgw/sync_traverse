@@ -9,13 +9,17 @@ module GraphFlow
     AGENTS_SECTION_PATH = File.join(TEMPLATES_DIR, "agents_section.md")
 
     AGENT_TEMPLATES = {
-      "copilot" => [File.join(TEMPLATES_DIR, "agents", "github.agent.md.erb"), File.join(".github", "agents", "graph.agent.md")],
+      "copilot" => [File.join(TEMPLATES_DIR, "agents", "github.agent.md.erb"),
+                    File.join(".github", "agents", "graph.agent.md")],
       "claude" => [File.join(TEMPLATES_DIR, "agents", "claude.md.erb"), File.join(".claude", "agents", "graph.md")]
     }.freeze
 
     def run(target, root_dir: Dir.pwd)
       template_path, relative_target = AGENT_TEMPLATES[target]
-      raise ArgumentError, "Unknown target '#{target}', expected one of: #{AGENT_TEMPLATES.keys.join(', ')}" unless template_path
+      unless template_path
+        raise ArgumentError,
+              "Unknown target '#{target}', expected one of: #{AGENT_TEMPLATES.keys.join(", ")}"
+      end
 
       write_file(root_dir, ".mcp.json", File.read(File.join(TEMPLATES_DIR, ".mcp.json")))
       write_file(root_dir, relative_target, render(template_path))

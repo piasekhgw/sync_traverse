@@ -22,8 +22,8 @@ module GraphFlow
         end
 
         def with_input_validation(flow_name: nil, node_names: [])
-          invalid_names = [flow_name, *node_names].compact.uniq.reject { |name| name.match?(NAME_PATTERN) }
-          return error_response("Invalid name(s): #{invalid_names.join(', ')}") if invalid_names.any?
+          invalid_names = [flow_name, *node_names].compact.uniq.grep_v(NAME_PATTERN)
+          return error_response("Invalid name(s): #{invalid_names.join(", ")}") if invalid_names.any?
 
           yield
         end

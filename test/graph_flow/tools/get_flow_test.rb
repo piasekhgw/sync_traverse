@@ -6,7 +6,7 @@ module GraphFlow
       def test_returns_empty_definition_for_unknown_flow
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
-        refute response.error?
+        refute_predicate response, :error?
         assert_equal({}, JSON.parse(response.content.first[:text]))
       end
 
@@ -15,14 +15,14 @@ module GraphFlow
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
-        refute response.error?
+        refute_predicate response, :error?
         assert_equal({ "validate_order" => { "valid" => nil } }, JSON.parse(response.content.first[:text]))
       end
 
       def test_rejects_invalid_flow_name
         response = GetFlow.call(flow_name: "../escape", server_context: {})
 
-        assert response.error?
+        assert_predicate response, :error?
         assert_equal "Invalid name(s): ../escape", response.content.first[:text]
       end
     end

@@ -6,7 +6,7 @@ module GraphFlow
       def test_creates_node_file
         response = UpdateNodeCode.call(node: "orders/validate_order", code: "module Orders\nend\n", server_context: {})
 
-        refute response.error?
+        refute_predicate response, :error?
         assert_equal "ok", response.content.first[:text]
         assert_equal "module Orders\nend\n", File.read(node_path("orders/validate_order"))
       end
@@ -22,7 +22,7 @@ module GraphFlow
       def test_rejects_invalid_node_name
         response = UpdateNodeCode.call(node: "../escape", code: "code", server_context: {})
 
-        assert response.error?
+        assert_predicate response, :error?
         assert_equal "Invalid name(s): ../escape", response.content.first[:text]
       end
     end

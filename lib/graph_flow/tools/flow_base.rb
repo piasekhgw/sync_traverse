@@ -5,10 +5,10 @@ module GraphFlow
         type: "object",
         properties: {
           source: { type: "string", description: "Source node name." },
-          target: { type: ["string", "null"], description: "Target node name, or null if this outcome ends the flow." },
+          target: { type: %w[string null], description: "Target node name, or null if this outcome ends the flow." },
           source_outcome: { type: "string", description: "Outcome returned by the source node that selects this edge." }
         },
-        required: ["source", "target", "source_outcome"]
+        required: %w[source target source_outcome]
       }.freeze
 
       class << self

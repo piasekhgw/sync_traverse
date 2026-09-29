@@ -5,7 +5,8 @@ module GraphFlow
       description "Updates the flow in a single step: removes edges first, then adds edges. Referenced nodes are created automatically; nodes that become isolated are removed automatically."
       input_schema(
         properties: {
-          flow_name: { type: "string", description: "The flow name. Must be a relative path; may be namespaced with a path, for example 'orders/purchase'." },
+          flow_name: { type: "string",
+                       description: "The flow name. Must be a relative path; may be namespaced with a path, for example 'orders/purchase'." },
           remove_edges: { type: "array", items: EDGE_SCHEMA, description: "Edges to remove." },
           add_edges: { type: "array", items: EDGE_SCHEMA, description: "Edges to add, including terminal ones." }
         },
@@ -23,7 +24,7 @@ module GraphFlow
           return error_response(graph_errors.join("\n")) if graph_errors.any?
 
           save_flow(flow_name, flow)
-          text_response('ok')
+          text_response("ok")
         end
       rescue Flow::ConflictError => e
         error_response(e.message)

@@ -14,7 +14,7 @@ module GraphFlow
           server_context: {}
         )
 
-        refute response.error?
+        refute_predicate response, :error?
         assert_equal "ok", response.content.first[:text]
         assert_equal(
           {
@@ -35,7 +35,7 @@ module GraphFlow
           server_context: {}
         )
 
-        refute response.error?
+        refute_predicate response, :error?
         assert_equal({ "a" => { "old" => nil } }, JSON.parse(File.read(flow_definition_path("orders/purchase"))))
       end
 
@@ -49,12 +49,12 @@ module GraphFlow
           server_context: {}
         )
 
-        assert response.error?
+        assert_predicate response, :error?
         assert_equal(
           "Flow must be acyclic\nFlow must have exactly one source node, found: none",
           response.content.first[:text]
         )
-        refute File.exist?(flow_definition_path("orders/purchase"))
+        refute_path_exists flow_definition_path("orders/purchase")
       end
 
       def test_rejects_conflicting_outcome_target
@@ -66,7 +66,7 @@ module GraphFlow
           server_context: {}
         )
 
-        assert response.error?
+        assert_predicate response, :error?
         assert_equal(
           "Outcome 'ok' of node 'a' already targets 'b'; remove that edge first",
           response.content.first[:text]
@@ -80,7 +80,7 @@ module GraphFlow
           server_context: {}
         )
 
-        assert response.error?
+        assert_predicate response, :error?
         assert_equal "Invalid name(s): ../escape", response.content.first[:text]
       end
     end
