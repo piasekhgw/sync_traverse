@@ -51,6 +51,7 @@ module GraphFlow
       path = node_path(node_name)
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, code)
+      require path
     end
   end
 end

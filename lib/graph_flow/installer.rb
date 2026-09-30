@@ -14,7 +14,7 @@ module GraphFlow
       "claude" => [File.join(TEMPLATES_DIR, "agents", "claude.md.erb"), File.join(".claude", "agents", "graph.md")]
     }.freeze
 
-    def run(target, root_dir: Dir.pwd)
+    def call(target, root_dir: Dir.pwd)
       template_path, relative_target = AGENT_TEMPLATES[target]
       unless template_path
         raise ArgumentError,

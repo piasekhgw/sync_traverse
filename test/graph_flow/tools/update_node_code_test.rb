@@ -12,15 +12,15 @@ module GraphFlow
       end
 
       def test_replaces_existing_node_file
-        write_node_code("orders/validate_order", "old code")
+        write_node_code("orders/validate_order", "'old code'")
 
-        UpdateNodeCode.call(node: "orders/validate_order", code: "new code", server_context: {})
+        UpdateNodeCode.call(node: "orders/validate_order", code: "'new code'", server_context: {})
 
-        assert_equal "new code", File.read(node_path("orders/validate_order"))
+        assert_equal "'new code'", File.read(node_path("orders/validate_order"))
       end
 
       def test_rejects_invalid_node_name
-        response = UpdateNodeCode.call(node: "../escape", code: "code", server_context: {})
+        response = UpdateNodeCode.call(node: "../escape", code: "'code'", server_context: {})
 
         assert_predicate response, :error?
         assert_equal "Invalid name(s): ../escape", response.content.first[:text]

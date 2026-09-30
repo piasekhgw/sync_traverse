@@ -20,7 +20,7 @@ module GraphFlow
           flow.remove_edges(remove_edges)
           flow.add_edges(add_edges)
 
-          graph_errors = GraphValidator.new(flow.definition).run
+          graph_errors = GraphValidator.new(flow.definition).call
           return error_response(graph_errors.join("\n")) if graph_errors.any?
 
           save_flow(flow_name, flow)

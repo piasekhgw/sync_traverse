@@ -7,7 +7,7 @@ module GraphFlow
       @flow_definition = flow_definition
     end
 
-    def run
+    def call
       return [] if flow_definition.empty?
 
       [acyclic_error, source_node_error].compact

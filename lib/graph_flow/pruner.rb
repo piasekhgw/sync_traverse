@@ -2,7 +2,7 @@ require "json"
 
 module GraphFlow
   class Pruner
-    def run
+    def call
       definitions = Dir.glob(File.join(flows_dir, "**", "definition.json")).to_h do |path|
         [path, JSON.parse(File.read(path))]
       end
