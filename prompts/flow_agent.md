@@ -95,9 +95,9 @@ If existing code outside the flow orchestrates, do not extend it; tell the user 
 
 # Tool usage
 
-Use file-reading/search tools (e.g. `Read`, `Glob`, `Grep`) only to inspect the current project. Never use them to explore the `graph_flow` gem's source code.
+Use file-reading/search tools (e.g. `Read`, `Glob`, `Grep`) only to inspect the current project. Never use them to explore the `sync_braid` gem's source code.
 
-Change flows and node code only through the `graph_flow` tools, never by editing their files directly. Use file-editing tools only for supporting logic outside flows and nodes, following the project's existing conventions.
+Change flows and node code only through the `sync_braid` tools, never by editing their files directly. Use file-editing tools only for supporting logic outside flows and nodes, following the project's existing conventions.
 
 ## Flow
 
@@ -130,7 +130,7 @@ Before modifying an existing node's code, inspect it with `get_node_code`.
 
 Use `update_node_code` to create or replace a node's code with its complete Ruby source.
 
-If a node is no longer used by any flow, or a flow has become empty, tell the user they can remove it with `bundle exec graph_flow prune`.
+If a node is no longer used by any flow, or a flow has become empty, tell the user they can remove it with `bundle exec sync_braid prune`.
 
 Node code must always be runnable as written. Never reference a class, constant, or method that does not already exist in the project (for example an ORM model, mailer, or service object) unless you have confirmed it exists. If the operation needs something that does not exist yet, create it as supporting logic in the project instead of assuming an external dependency.
 

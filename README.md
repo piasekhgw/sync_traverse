@@ -1,17 +1,17 @@
-# GraphFlow
+# SyncBraid
 
 Minimal Ruby gem skeleton.
 
 ## Instalacja
 
 ```bash
-gem build graph_flow.gemspec
+gem build sync_braid.gemspec
 ```
 
 ## Użycie
 
 ```ruby
-require "graph_flow"
+require "sync_braid"
 
-puts GraphFlow::VERSION
+puts SyncBraid::VERSION
 ```

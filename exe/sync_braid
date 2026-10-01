@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "sync_braid"
+
+case ARGV[0]
+when "mcp"
+  tools = [
+    SyncBraid::Tools::GetFlow,
+    SyncBraid::Tools::UpdateFlow,
+    SyncBraid::Tools::StoreFlowDiagram,
+    SyncBraid::Tools::GetNodeCode,
+    SyncBraid::Tools::UpdateNodeCode,
+    SyncBraid::Tools::RunNodeTests
+  ]
+
+  server = MCP::Server.new(name: "sync_braid", tools: tools)
+  transport = MCP::Server::Transports::StdioTransport.new(server)
+  transport.open
+when "install"
+  begin
+    SyncBraid::Installer.new.call(ARGV[1])
+  rescue ArgumentError => e
+    warn e.message
+    exit 1
+  end
+when "prune"
+  SyncBraid::Pruner.new.call
+else
+  warn "Usage: sync_braid mcp|install copilot|claude|prune"
+  exit 1
+end

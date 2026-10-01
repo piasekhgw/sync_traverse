@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "graph_flow": {
+    "sync_braid": {
       "command": "bash",
-      "args": ["-lc", "bundle exec graph_flow mcp"],
+      "args": ["-lc", "bundle exec sync_braid mcp"],
       "cwd": "${workspaceFolder}"
     }
   }
