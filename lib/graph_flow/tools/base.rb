@@ -8,6 +8,11 @@ module GraphFlow
       class << self
         private
 
+        def get_flow(flow_name)
+          path = flow_definition_path(flow_name)
+          GraphFlow::Flow.new(File.exist?(path) ? JSON.parse(File.read(path)) : {})
+        end
+
         def write_file(path, content)
           FileUtils.mkdir_p(File.dirname(path))
           File.write(path, content)

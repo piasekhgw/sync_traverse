@@ -5,8 +5,10 @@ module GraphFlow
       description "Returns the code for the given node. Call this before modifying a node code."
       input_schema(
         properties: {
-          node: { type: "string",
-                  description: "The node name in snake_case. Must be a relative path; may be namespaced with a path, for example 'orders/validate_order'." }
+          node: {
+            type: "string",
+            description: "The node name in snake_case. Must be a relative path; may be namespaced with a path, for example 'orders/validate_order'."
+          }
         },
         required: ["node"]
       )

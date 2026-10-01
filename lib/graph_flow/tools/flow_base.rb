@@ -14,11 +14,6 @@ module GraphFlow
       class << self
         private
 
-        def get_flow(flow_name)
-          path = flow_definition_path(flow_name)
-          GraphFlow::Flow.new(File.exist?(path) ? JSON.parse(File.read(path)) : {})
-        end
-
         def save_flow(flow_name, flow)
           write_file(flow_definition_path(flow_name), JSON.pretty_generate(flow.definition))
         end

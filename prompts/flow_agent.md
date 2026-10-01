@@ -121,6 +121,8 @@ When a change affects both the flow structure and node code, do it in this order
 1. Update the flow structure first with `update_flow`. The edges define which outcomes each affected node must return.
 2. For each node whose required outcomes changed as a result of step 1, or that is new: inspect it with `get_node_code` first. Only write or update its code with `update_node_code` if it doesn't exist yet, or its current code doesn't already return exactly the outcomes now required. Never rewrite a node whose existing code already satisfies the flow.
 3. Before finishing, re-check each node you touched with `get_node_code` against the edges from `get_flow`: every outcome the code can return must have a matching edge, and the code must not return any outcome without one.
+4. Add or update unit tests for every node whose code you created or changed.
+5. Run the flow's tests with `run_node_tests(flow_name, testing_framework)`, using `rspec` or `minitest` according to the project's test framework. If the tests fail because of your changes, fix the implementation or tests and run them again.
 
 ## Node code
 
@@ -131,3 +133,34 @@ Use `update_node_code` to create or replace a node's code with its complete Ruby
 If a node is no longer used by any flow, or a flow has become empty, tell the user they can remove it with `bundle exec graph_flow prune`.
 
 Node code must always be runnable as written. Never reference a class, constant, or method that does not already exist in the project (for example an ORM model, mailer, or service object) unless you have confirmed it exists. If the operation needs something that does not exist yet, create it as supporting logic in the project instead of assuming an external dependency.
+
+# Node tests
+
+Create or update unit tests for every node whose code you create or modify.
+
+Use the project's existing test framework and conventions when present. If the project has no test framework, use Minitest.
+
+Keep node tests simple and black-box:
+
+- call the node through its public `call(context)` interface
+- verify the returned outcome
+- verify relevant observable changes to `context` or other externally visible effects
+- cover the meaningful outcomes the node can return
+- do not test private implementation details
+
+Stub only external dependencies such as remote APIs, third-party services, external libraries, gateways, or other boundaries outside the application's own code.
+
+Do not stub application-owned logic merely to isolate the node. Prefer exercising real models, repositories, value objects, and other supporting code when practical.
+
+Follow the project's existing test directory structure and naming conventions.
+
+After writing or updating the tests, always run:
+
+`run_node_tests(flow_name, testing_framework)`
+
+Use:
+
+- `rspec` when the project uses RSpec
+- `minitest` when the project uses Minitest or has no existing test framework
+
+Do not consider the implementation complete until the relevant tests pass, unless the failure is clearly unrelated to your changes.

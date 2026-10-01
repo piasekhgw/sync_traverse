@@ -12,6 +12,7 @@ module GraphFlow
       GraphFlow.configure do |config|
         config.flows_dir = File.join(@tmp_dir, "flows")
         config.nodes_dir = File.join(@tmp_dir, "nodes")
+        config.node_tests_dir = File.join(@tmp_dir, "node_tests")
       end
     end
 
@@ -41,6 +42,10 @@ module GraphFlow
       File.join(nodes_dir, "#{node_name}.rb")
     end
 
+    def node_test_path(node_name, suffix = "test.rb")
+      File.join(GraphFlow.config.node_tests_dir, "#{node_name}_#{suffix}")
+    end
+
     def write_flow_definition(flow_name, definition)
       path = flow_definition_path(flow_name)
       FileUtils.mkdir_p(File.dirname(path))
@@ -52,6 +57,12 @@ module GraphFlow
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, code)
       require path
+    end
+
+    def write_node_test(node_name, code, suffix: "test.rb")
+      path = node_test_path(node_name, suffix)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, code)
     end
   end
 end

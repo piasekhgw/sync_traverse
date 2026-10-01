@@ -5,9 +5,14 @@ module GraphFlow
       description "Creates or replaces the code for the given node."
       input_schema(
         properties: {
-          node: { type: "string",
-                  description: "The node name in snake_case. Must be a relative path; may be namespaced with a path, for example 'orders/validate_order'." },
-          code: { type: "string", description: "The complete Ruby source code of the node." }
+          node: {
+            type: "string",
+            description: "The node name in snake_case. Must be a relative path; may be namespaced with a path, for example 'orders/validate_order'."
+          },
+          code: {
+            type: "string",
+            description: "The complete Ruby source code of the node."
+          }
         },
         required: %w[node code]
       )

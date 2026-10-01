@@ -10,7 +10,8 @@ when "mcp"
     GraphFlow::Tools::UpdateFlow,
     GraphFlow::Tools::StoreFlowDiagram,
     GraphFlow::Tools::GetNodeCode,
-    GraphFlow::Tools::UpdateNodeCode
+    GraphFlow::Tools::UpdateNodeCode,
+    GraphFlow::Tools::RunNodeTests
   ]
 
   server = MCP::Server.new(name: "graph_flow", tools: tools)

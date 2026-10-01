@@ -5,10 +5,20 @@ module GraphFlow
       description "Updates the flow in a single step: removes edges first, then adds edges. Referenced nodes are created automatically; nodes that become isolated are removed automatically."
       input_schema(
         properties: {
-          flow_name: { type: "string",
-                       description: "The flow name. Must be a relative path; may be namespaced with a path, for example 'orders/purchase'." },
-          remove_edges: { type: "array", items: EDGE_SCHEMA, description: "Edges to remove." },
-          add_edges: { type: "array", items: EDGE_SCHEMA, description: "Edges to add, including terminal ones." }
+          flow_name: {
+            type: "string",
+            description: "The flow name. Must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
+          },
+          remove_edges: {
+            type: "array",
+            items: EDGE_SCHEMA,
+            description: "Edges to remove."
+          },
+          add_edges: {
+            type: "array",
+            items: EDGE_SCHEMA,
+            description: "Edges to add, including terminal ones."
+          }
         },
         required: ["flow_name"]
       )
