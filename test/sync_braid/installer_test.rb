@@ -14,7 +14,7 @@ module SyncBraid
       Installer.new.call("copilot", root_dir: @root_dir)
 
       assert_path_exists File.join(@root_dir, ".mcp.json")
-      assert_path_exists File.join(@root_dir, ".github", "agents", "graph.agent.md")
+      assert_path_exists File.join(@root_dir, ".github", "agents", "sync_braid.agent.md")
       assert_path_exists File.join(@root_dir, "AGENTS.md")
     end
 
@@ -22,7 +22,7 @@ module SyncBraid
       Installer.new.call("claude", root_dir: @root_dir)
 
       assert_path_exists File.join(@root_dir, ".mcp.json")
-      assert_path_exists File.join(@root_dir, ".claude", "agents", "graph.md")
+      assert_path_exists File.join(@root_dir, ".claude", "agents", "sync_braid.md")
       assert_path_exists File.join(@root_dir, "AGENTS.md")
     end
 
@@ -48,7 +48,7 @@ module SyncBraid
       content = File.read(File.join(@root_dir, "AGENTS.md"))
 
       assert content.start_with?("# My Project")
-      assert_includes content, "Graph Flow"
+      assert_includes content, "Sync Braid"
     end
   end
 end

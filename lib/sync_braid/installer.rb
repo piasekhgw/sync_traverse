@@ -10,8 +10,8 @@ module SyncBraid
 
     AGENT_TEMPLATES = {
       "copilot" => [File.join(TEMPLATES_DIR, "agents", "github.agent.md.erb"),
-                    File.join(".github", "agents", "graph.agent.md")],
-      "claude" => [File.join(TEMPLATES_DIR, "agents", "claude.md.erb"), File.join(".claude", "agents", "graph.md")]
+                    File.join(".github", "agents", "sync_braid.agent.md")],
+      "claude" => [File.join(TEMPLATES_DIR, "agents", "claude.md.erb"), File.join(".claude", "agents", "sync_braid.md")]
     }.freeze
 
     def call(target, root_dir: Dir.pwd)
