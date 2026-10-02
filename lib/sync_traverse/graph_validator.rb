@@ -35,7 +35,7 @@ module SyncTraverse
 
         duplicates.map do |target, names|
           target_label = target.nil? ? "null" : "'#{target}'"
-          "Node '#{node}' has multiple outcomes leading to #{target_label}: #{names.join(", ")}"§q
+          "Node '#{node}' has multiple outcomes leading to #{target_label}: #{names.join(", ")}"
         end
       end
     end

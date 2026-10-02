@@ -2,25 +2,27 @@ require "minitest/autorun"
 require "fileutils"
 require "tmpdir"
 require "json"
+require "dotenv"
+
+Dotenv.load(File.expand_path("../.env.test", __dir__))
+
 require "sync_traverse"
 
 module SyncTraverse
   class TestCase < Minitest::Test
     def setup
-      @tmp_dir = Dir.mktmpdir("sync_traverse_test")
-
-      SyncTraverse.configure do |config|
-        config.flows_dir = File.join(@tmp_dir, "flows")
-        config.nodes_dir = File.join(@tmp_dir, "nodes")
-        config.node_tests_dir = File.join(@tmp_dir, "node_tests")
-      end
+      cleanup_dirs
     end
 
     def teardown
-      FileUtils.remove_entry(@tmp_dir)
+      cleanup_dirs
     end
 
     private
+
+    def cleanup_dirs
+      [flows_dir, nodes_dir, SyncTraverse.config.node_tests_dir].each { |dir| FileUtils.rm_rf(dir) }
+    end
 
     def flows_dir
       SyncTraverse.config.flows_dir
@@ -56,7 +58,7 @@ module SyncTraverse
       path = node_path(node_name)
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, code)
-      require path
+      load path
     end
 
     def write_node_test(node_name, code, suffix: "test.rb")

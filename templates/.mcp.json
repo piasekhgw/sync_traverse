@@ -2,7 +2,7 @@
   "mcpServers": {
     "sync_traverse": {
       "command": "bash",
-      "args": ["-lc", "bundle exec sync_traverse mcp"],
+      "args": ["-lc", "if [ -f .env ]; then set -a; . ./.env; set +a; fi; bundle exec sync_traverse mcp"],
       "cwd": "${workspaceFolder}"
     }
   }
