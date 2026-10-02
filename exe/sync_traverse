@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "sync_traverse"
+
+case ARGV[0]
+when "mcp"
+  tools = [
+    SyncTraverse::Tools::GetFlow,
+    SyncTraverse::Tools::UpdateFlow,
+    SyncTraverse::Tools::StoreFlowDiagram,
+    SyncTraverse::Tools::GetNodeCode,
+    SyncTraverse::Tools::UpdateNodeCode,
+    SyncTraverse::Tools::RunNodeTests
+  ]
+
+  server = MCP::Server.new(name: "sync_traverse", tools: tools)
+  transport = MCP::Server::Transports::StdioTransport.new(server)
+  transport.open
+when "install"
+  begin
+    SyncTraverse::Installer.new.call(ARGV[1])
+  rescue ArgumentError => e
+    warn e.message
+    exit 1
+  end
+when "prune"
+  SyncTraverse::Pruner.new.call
+else
+  warn "Usage: sync_traverse mcp|install copilot|claude|prune"
+  exit 1
+end

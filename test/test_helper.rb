@@ -2,14 +2,14 @@ require "minitest/autorun"
 require "fileutils"
 require "tmpdir"
 require "json"
-require "sync_braid"
+require "sync_traverse"
 
-module SyncBraid
+module SyncTraverse
   class TestCase < Minitest::Test
     def setup
-      @tmp_dir = Dir.mktmpdir("sync_braid_test")
+      @tmp_dir = Dir.mktmpdir("sync_traverse_test")
 
-      SyncBraid.configure do |config|
+      SyncTraverse.configure do |config|
         config.flows_dir = File.join(@tmp_dir, "flows")
         config.nodes_dir = File.join(@tmp_dir, "nodes")
         config.node_tests_dir = File.join(@tmp_dir, "node_tests")
@@ -23,11 +23,11 @@ module SyncBraid
     private
 
     def flows_dir
-      SyncBraid.config.flows_dir
+      SyncTraverse.config.flows_dir
     end
 
     def nodes_dir
-      SyncBraid.config.nodes_dir
+      SyncTraverse.config.nodes_dir
     end
 
     def flow_definition_path(flow_name)
@@ -43,7 +43,7 @@ module SyncBraid
     end
 
     def node_test_path(node_name, suffix = "test.rb")
-      File.join(SyncBraid.config.node_tests_dir, "#{node_name}_#{suffix}")
+      File.join(SyncTraverse.config.node_tests_dir, "#{node_name}_#{suffix}")
     end
 
     def write_flow_definition(flow_name, definition)

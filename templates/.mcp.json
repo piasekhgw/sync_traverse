@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "sync_braid": {
+    "sync_traverse": {
       "command": "bash",
-      "args": ["-lc", "bundle exec sync_braid mcp"],
+      "args": ["-lc", "bundle exec sync_traverse mcp"],
       "cwd": "${workspaceFolder}"
     }
   }

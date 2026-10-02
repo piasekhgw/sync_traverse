@@ -1,17 +1,17 @@
-# SyncBraid
+# SyncTraverse
 
 Minimal Ruby gem skeleton.
 
 ## Instalacja
 
 ```bash
-gem build sync_braid.gemspec
+gem build sync_traverse.gemspec
 ```
 
 ## Użycie
 
 ```ruby
-require "sync_braid"
+require "sync_traverse"
 
-puts SyncBraid::VERSION
+puts SyncTraverse::VERSION
 ```
