@@ -2,11 +2,16 @@ require "minitest/autorun"
 require "fileutils"
 require "tmpdir"
 require "json"
-require "dotenv"
-
-Dotenv.load(File.expand_path("../.env.test", __dir__))
 
 require "sync_traverse"
+
+test_root = File.expand_path("../tmp/test", __dir__)
+FileUtils.mkdir_p(test_root)
+File.write(
+  File.join(test_root, SyncTraverse::Config::FILE_NAME),
+  { "nodes_dir" => "nodes", "flows_dir" => "flows", "node_tests_dir" => "node_tests" }.to_yaml
+)
+SyncTraverse.config = SyncTraverse::Config.new(test_root)
 
 module SyncTraverse
   class TestCase < Minitest::Test

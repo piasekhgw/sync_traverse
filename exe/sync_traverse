@@ -2,9 +2,38 @@
 # frozen_string_literal: true
 
 require "sync_traverse"
+require "optparse"
 
-case ARGV[0]
+USAGE = <<~TEXT
+  Usage:
+    sync_traverse install copilot|claude --nodes-dir DIR --flows-dir DIR --node-tests-dir DIR
+    sync_traverse mcp
+TEXT
+
+def parse_paths(argv)
+  paths = {}
+  OptionParser.new do |parser|
+    parser.on("--nodes-dir DIR") { |dir| paths[:nodes_dir] = dir }
+    parser.on("--flows-dir DIR") { |dir| paths[:flows_dir] = dir }
+    parser.on("--node-tests-dir DIR") { |dir| paths[:node_tests_dir] = dir }
+  end.parse!(argv)
+
+  missing = %i[nodes_dir flows_dir node_tests_dir] - paths.keys
+  abort "Missing option(s): #{missing.map { |name| "--#{name.to_s.tr("_", "-")}" }.join(", ")}\n\n#{USAGE}" if missing.any?
+
+  paths
+rescue OptionParser::ParseError => e
+  abort "#{e.message}\n\n#{USAGE}"
+end
+
+case ARGV.shift
 when "mcp"
+  begin
+    SyncTraverse.config
+  rescue SyncTraverse::Config::Error => e
+    abort e.message
+  end
+
   tools = [
     SyncTraverse::Tools::GetFlow,
     SyncTraverse::Tools::UpdateFlow,
@@ -19,13 +48,12 @@ when "mcp"
   transport = MCP::Server::Transports::StdioTransport.new(server)
   transport.open
 when "install"
+  paths = parse_paths(ARGV)
   begin
-    SyncTraverse::Installer.new.call(ARGV[1])
+    SyncTraverse::Installer.new.call(ARGV.first, **paths)
   rescue ArgumentError => e
-    warn e.message
-    exit 1
+    abort e.message
   end
 else
-  warn "Usage: sync_traverse mcp|install copilot|claude"
-  exit 1
+  abort USAGE
 end

@@ -6,7 +6,6 @@ gemspec
 
 group :development do
   gem "debug"
-  gem "dotenv"
   gem "minitest"
   gem "rake"
   gem "rspec"
