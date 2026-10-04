@@ -7,7 +7,7 @@ module SyncTraverse
         response = UpdateNodeCode.call(node: "orders/validate_order", code: "module Orders\nend\n", server_context: {})
 
         refute_predicate response, :error?
-        assert_equal "ok", response.content.first[:text]
+        assert_equal "Success", response.content.first[:text]
         assert_equal "module Orders\nend\n", File.read(node_path("orders/validate_order"))
       end
 

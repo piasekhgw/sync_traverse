@@ -114,23 +114,21 @@ Use `update_flow` for graph changes. Pass related removals and additions in one 
 
 Referenced nodes are created automatically and isolated nodes are removed automatically.
 
-After a successful graph change, store an updated Mermaid flowchart with `store_flow_diagram`. Label edges with outcomes and represent every terminal edge with its own `((End))` node.
-
 # Implementation workflow
 
 When flow structure and code change together:
 
 1. Update the graph first.
-2. Inspect new or affected nodes with `get_node_code`.
-3. Use `update_node_code` only when a node is missing or its implementation no longer matches the outcomes required by the graph.
-4. Ensure every outcome returned by touched node code has a matching edge and no undeclared outcome can be returned.
-5. Add or update unit tests for every node whose code changed.
-6. Run `run_node_tests(flow_name, testing_framework)`.
-7. If failures are caused by your changes, fix them and run the tests again.
+2. If the update left nodes that no flow uses anymore, call `prune_nodes` to delete their code. If the flow was left without nodes, it is deleted automatically; stop after this step.
+3. Store an updated Mermaid flowchart with `store_flow_diagram`. Label edges with outcomes and represent every terminal edge with its own `((End))` node.
+4. Inspect new or affected nodes with `get_node_code`.
+5. Use `update_node_code` only when a node is missing or its implementation no longer matches the outcomes required by the graph.
+6. Ensure every outcome returned by touched node code has a matching edge and no undeclared outcome can be returned.
+7. Add or update unit tests for every node whose code changed.
+8. Run `run_node_tests(flow_name, testing_framework)`.
+9. If failures are caused by your changes, fix them and run the tests again.
 
 Do not rewrite node code that already satisfies the flow.
-
-When `update_flow` leaves nodes that no flow uses anymore, call `prune_nodes` to delete their code. A flow left without nodes is deleted automatically.
 
 Never reference a class, constant, or method unless you confirmed it exists. Create missing supporting application code instead of assuming it exists.
 

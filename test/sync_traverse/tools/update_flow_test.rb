@@ -15,7 +15,7 @@ module SyncTraverse
         )
 
         refute_predicate response, :error?
-        assert_equal "ok", response.content.first[:text]
+        assert_equal "Success", response.content.first[:text]
         assert_equal(
           {
             "validate_order" => { "valid" => "charge_payment", "invalid" => nil },
@@ -50,6 +50,7 @@ module SyncTraverse
         )
 
         refute_predicate response, :error?
+        assert_equal "Success. Flow has no nodes left and was deleted.", response.content.first[:text]
         refute File.directory?(File.join(flows_dir, "orders"))
       end
 

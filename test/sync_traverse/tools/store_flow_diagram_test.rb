@@ -11,7 +11,7 @@ module SyncTraverse
         )
 
         refute_predicate response, :error?
-        assert_equal "ok", response.content.first[:text]
+        assert_equal "Success", response.content.first[:text]
         assert_equal "flowchart TD\n  a --> b", File.read(flow_diagram_path("orders/purchase"))
       end
 

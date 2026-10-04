@@ -20,7 +20,7 @@ module SyncTraverse
       def self.call(node:, code:, server_context:)
         with_input_validation(node_names: [node]) do
           update_node_code(node, code)
-          text_response("ok")
+          text_response("Success")
         end
       end
     end

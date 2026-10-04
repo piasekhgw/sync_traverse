@@ -33,8 +33,13 @@ module SyncTraverse
           graph_errors = GraphValidator.new(flow.definition).call
           return error_response(graph_errors.join("\n")) if graph_errors.any?
 
-          flow.definition.empty? ? delete_flow(flow_name) : save_flow(flow_name, flow)
-          text_response("ok")
+          if flow.definition.empty?
+            delete_flow(flow_name)
+            return text_response("Success. Flow has no nodes left and was deleted.")
+          end
+
+          save_flow(flow_name, flow)
+          text_response("Success")
         end
       rescue Flow::ConflictError => e
         error_response(e.message)
