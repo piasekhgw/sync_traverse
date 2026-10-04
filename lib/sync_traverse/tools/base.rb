@@ -18,6 +18,12 @@ module SyncTraverse
           File.write(path, content)
         end
 
+        def remove_empty_dirs(root)
+          Dir.glob(File.join(root, "**", "*/")).sort_by { |dir| -dir.length }.each do |dir|
+            Dir.rmdir(dir) if Dir.empty?(dir)
+          end
+        end
+
         def text_response(message)
           MCP::Tool::Response.new([{ type: "text", text: message }])
         end

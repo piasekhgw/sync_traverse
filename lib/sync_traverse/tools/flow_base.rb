@@ -18,6 +18,11 @@ module SyncTraverse
           write_file(flow_definition_path(flow_name), JSON.pretty_generate(flow.definition))
         end
 
+        def delete_flow(flow_name)
+          FileUtils.rm_f([flow_definition_path(flow_name), flow_diagram_path(flow_name)])
+          remove_empty_dirs(flows_dir)
+        end
+
         def flow_definition_path(flow_name)
           File.join(flows_dir, flow_name, "definition.json")
         end

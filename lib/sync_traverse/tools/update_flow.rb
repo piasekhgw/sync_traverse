@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class UpdateFlow < FlowBase
       tool_name "update_flow"
-      description "Updates the flow in a single step: removes edges first, then adds edges. Referenced nodes are created automatically; nodes that become isolated are removed automatically."
+      description "Updates the flow in a single step: removes edges first, then adds edges. Referenced nodes are created automatically; nodes that become isolated are removed automatically. A flow left without nodes is deleted. Code of nodes no longer used by any flow is kept until prune_nodes is called."
       input_schema(
         properties: {
           flow_name: {
@@ -33,7 +33,7 @@ module SyncTraverse
           graph_errors = GraphValidator.new(flow.definition).call
           return error_response(graph_errors.join("\n")) if graph_errors.any?
 
-          save_flow(flow_name, flow)
+          flow.definition.empty? ? delete_flow(flow_name) : save_flow(flow_name, flow)
           text_response("ok")
         end
       rescue Flow::ConflictError => e

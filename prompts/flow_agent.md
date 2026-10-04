@@ -130,9 +130,7 @@ When flow structure and code change together:
 
 Do not rewrite node code that already satisfies the flow.
 
-If unused node implementations remain after graph changes, tell the user they can remove them with:
-
-`bundle exec sync_traverse prune`
+When `update_flow` leaves nodes that no flow uses anymore, call `prune_nodes` to delete their code. A flow left without nodes is deleted automatically.
 
 Never reference a class, constant, or method unless you confirmed it exists. Create missing supporting application code instead of assuming it exists.
 

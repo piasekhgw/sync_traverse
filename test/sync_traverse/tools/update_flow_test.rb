@@ -39,6 +39,20 @@ module SyncTraverse
         assert_equal({ "a" => { "old" => nil } }, JSON.parse(File.read(flow_definition_path("orders/purchase"))))
       end
 
+      def test_deletes_flow_files_when_no_nodes_left
+        write_flow_definition("orders/purchase", { "a" => { "done" => nil } })
+        File.write(flow_diagram_path("orders/purchase"), "flowchart TD")
+
+        response = UpdateFlow.call(
+          flow_name: "orders/purchase",
+          remove_edges: [{ source: "a", target: nil, source_outcome: "done" }],
+          server_context: {}
+        )
+
+        refute_predicate response, :error?
+        refute File.directory?(File.join(flows_dir, "orders"))
+      end
+
       def test_rejects_cycle_without_saving
         response = UpdateFlow.call(
           flow_name: "orders/purchase",

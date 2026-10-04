@@ -11,6 +11,7 @@ when "mcp"
     SyncTraverse::Tools::StoreFlowDiagram,
     SyncTraverse::Tools::GetNodeCode,
     SyncTraverse::Tools::UpdateNodeCode,
+    SyncTraverse::Tools::PruneNodes,
     SyncTraverse::Tools::RunNodeTests
   ]
 
@@ -24,9 +25,7 @@ when "install"
     warn e.message
     exit 1
   end
-when "prune"
-  SyncTraverse::Pruner.new.call
 else
-  warn "Usage: sync_traverse mcp|install copilot|claude|prune"
+  warn "Usage: sync_traverse mcp|install copilot|claude"
   exit 1
 end
