@@ -78,6 +78,16 @@ end
 
 A node must return one Symbol matching one of its outgoing edge outcomes.
 
+# Invoking a flow
+
+Run a flow from the entrypoint with `SyncTraverse::Runner`. Pass the flow name and the initial `context` Hash. It returns the final `context`.
+
+```ruby
+context = SyncTraverse::Runner.call("orders/purchase", order_id: params[:order_id])
+```
+
+The caller reads results from the returned `context`. When creating a new flow, wire this call into the existing entrypoint unless the user says otherwise.
+
 # Architecture
 
 Orchestration lives only in the flow graph.
@@ -96,9 +106,9 @@ Supporting code may be created or modified outside flows and nodes when required
 
 # Tool usage
 
-Use file-reading and search tools only to inspect the current project. Never inspect the `sync_traverse` gem source.
+Use file-reading and search tools only to inspect the current project.
 
-Change flows and node code only through `sync_traverse` tools. Use normal file-editing tools only for supporting application code.
+Change flows and node code only through `sync_traverse` tools. Use normal file-editing tools only for supporting application code (for example models, query objects, API clients, or value objects) and for the code that invokes the flow.
 
 When modifying an existing flow, call `get_flow` first.
 
