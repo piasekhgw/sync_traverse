@@ -90,19 +90,75 @@ The caller reads results from the returned `context`. When creating a new flow, 
 
 # Architecture
 
-Orchestration lives only in the flow graph.
+Orchestration lives only in the flow graph, and application-operation logic lives in nodes.
 
-A node performs one application operation and may use supporting application code such as models, queries, repositories, value objects, API clients, integrations, or helpers.
+A node must contain the actual application logic for the operation it represents. Do not make nodes thin wrappers around existing services, interactors, commands, organizers, or similar application-layer objects.
 
-Nodes and supporting code must never:
+When refactoring existing code into a flow, move the logic of an application operation into its corresponding node whenever practical.
 
-- call another node or flow
+For example, prefer:
+
+```ruby
+class CreateOrder
+  def self.call(context)
+    order = Order.new(
+      customer: context[:customer],
+      total: context[:total]
+    )
+
+    if order.save
+      context[:order] = order
+      :created
+    else
+      context[:errors] = order.errors
+      :invalid
+    end
+  end
+end
+```
+
+over:
+
+```ruby
+class CreateOrder
+  def self.call(context)
+    result = Orders::CreateService.call(context)
+    # ...
+  end
+end
+```
+
+if `Orders::CreateService` exists mainly to implement the `create_order` operation.
+
+Supporting code may be used when it represents a lower-level capability rather than an application operation, for example:
+
+- models and persistence primitives
+- queries and scopes
+- value objects
+- calculations or pure transformations reused in multiple places
+- API clients and external integrations
+- serializers and parsers
+- generic utilities
+
+Supporting code must not:
+
+- represent the same application operation as a node
+- call a node or flow
 - sequence application operations
-- decide which operation runs next
+- decide which application operation runs next
 
-A node influences control flow only through the outcome it returns.
+During legacy refactoring, inspect services, interactors, commands, and similar objects called by the code being migrated.
 
-Supporting code may be created or modified outside flows and nodes when required, following the project's existing conventions.
+If such an object primarily implements one operation represented by a node:
+
+1. move its application logic into the node
+2. check whether the old object is still used anywhere else
+3. if it is no longer used, remove it and any obsolete tests or references
+4. if it is still used elsewhere, keep only the reusable supporting logic that genuinely belongs outside the node
+
+Do not leave obsolete application-service wrappers behind after their logic has been migrated.
+
+A node may delegate technical details or reusable primitives, but a developer should be able to understand the application's operation by reading the node without having to follow another application-service object.
 
 # Tool usage
 
