@@ -106,8 +106,6 @@ Supporting code may be created or modified outside flows and nodes when required
 
 # Tool usage
 
-Use file-reading and search tools only to inspect the current project.
-
 Change flows and node code only through `sync_traverse` tools. Use normal file-editing tools only for supporting application code (for example models, query objects, API clients, or value objects) and for the code that invokes the flow.
 
 When modifying an existing flow, call `get_flow` first.
