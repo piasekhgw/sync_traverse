@@ -4,7 +4,7 @@ module SyncTraverse
   module Tools
     class RunNodeTestsTest < SyncTraverse::TestCase
       def test_rejects_invalid_flow_name
-        response = RunNodeTests.call(flow_name: "../escape", testing_framework: "minitest", server_context: {})
+        response = RunNodeTests.call(flow_name: "../escape", server_context: {})
 
         assert_predicate response, :error?
         assert_equal "Invalid name(s): ../escape", response.content.first[:text]
@@ -13,99 +13,71 @@ module SyncTraverse
       def test_errors_when_no_node_tests_found
         write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
 
-        response = RunNodeTests.call(flow_name: "orders/purchase", testing_framework: "minitest", server_context: {})
+        response = RunNodeTests.call(flow_name: "orders/purchase", server_context: {})
 
         assert_predicate response, :error?
         assert_equal "No node tests found for flow: orders/purchase", response.content.first[:text]
       end
 
-      def test_only_runs_tests_for_nodes_that_have_them
+      def test_only_runs_tests_for_nodes_of_the_flow
         write_flow_definition(
           "orders/purchase",
           { "validate_order" => { "valid" => "charge_payment" }, "charge_payment" => { "paid" => nil } }
         )
-        write_node_test("validate_order", <<~RUBY)
-          require "minitest/autorun"
+        write_node_test("validate_order", passing_test("ValidateOrderTest"))
+        write_node_test("unrelated_node", failing_test("UnrelatedNodeTest"))
 
-          class ValidateOrderTest < Minitest::Test
-            def test_passes
-              assert true
-            end
-          end
-        RUBY
-
-        response = RunNodeTests.call(flow_name: "orders/purchase", testing_framework: "minitest", server_context: {})
+        response = RunNodeTests.call(flow_name: "orders/purchase", server_context: {})
 
         refute_predicate response, :error?
         assert_match(/1 runs, 1 assertions, 0 failures, 0 errors/, response.content.first[:text])
       end
 
-      def test_runs_passing_minitest_node_tests
+      def test_runs_every_test_file_in_node_directory
         write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_node_test("validate_order", <<~RUBY)
-          require "minitest/autorun"
+        write_node_test("validate_order", passing_test("ValidateOrderTest"))
+        write_node_test("validate_order", passing_test("ValidateOrderRulesTest"), file_name: "rules_test.rb")
 
-          class ValidateOrderTest < Minitest::Test
-            def test_passes
-              assert true
-            end
-          end
-        RUBY
-
-        response = RunNodeTests.call(flow_name: "orders/purchase", testing_framework: "minitest", server_context: {})
+        response = RunNodeTests.call(flow_name: "orders/purchase", server_context: {})
 
         refute_predicate response, :error?
-        assert_match(/1 runs, 1 assertions, 0 failures, 0 errors/, response.content.first[:text])
+        assert_match(/2 runs, 2 assertions, 0 failures, 0 errors/, response.content.first[:text])
       end
 
-      def test_reports_failing_minitest_node_tests
+      def test_reports_failing_node_tests
         write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_node_test("validate_order", <<~RUBY)
-          require "minitest/autorun"
+        write_node_test("validate_order", failing_test("ValidateOrderTest"))
 
-          class ValidateOrderTest < Minitest::Test
-            def test_fails
-              assert false, "boom"
-            end
-          end
-        RUBY
-
-        response = RunNodeTests.call(flow_name: "orders/purchase", testing_framework: "minitest", server_context: {})
+        response = RunNodeTests.call(flow_name: "orders/purchase", server_context: {})
 
         assert_predicate response, :error?
         assert_match(/boom/, response.content.first[:text])
       end
 
-      def test_runs_passing_rspec_node_tests
-        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_node_test("validate_order", <<~RUBY, suffix: "spec.rb")
-          RSpec.describe "validate_order" do
-            it "passes" do
-              expect(true).to be(true)
+      private
+
+      def passing_test(class_name)
+        <<~RUBY
+          require "minitest/autorun"
+
+          class #{class_name} < Minitest::Test
+            def test_passes
+              assert true
             end
           end
         RUBY
-
-        response = RunNodeTests.call(flow_name: "orders/purchase", testing_framework: "rspec", server_context: {})
-
-        refute_predicate response, :error?
-        assert_match(/1 example, 0 failures/, response.content.first[:text])
       end
 
-      def test_reports_failing_rspec_node_tests
-        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_node_test("validate_order", <<~RUBY, suffix: "spec.rb")
-          RSpec.describe "validate_order" do
-            it "fails" do
-              expect(false).to be(true)
+      def failing_test(class_name)
+        <<~RUBY
+          require "minitest/autorun"
+
+          class #{class_name} < Minitest::Test
+            def test_fails
+              assert false, "boom"
             end
           end
         RUBY
-
-        response = RunNodeTests.call(flow_name: "orders/purchase", testing_framework: "rspec", server_context: {})
-
-        assert_predicate response, :error?
-        assert_match(/1 example, 1 failure/, response.content.first[:text])
       end
     end
   end

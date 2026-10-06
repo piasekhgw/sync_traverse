@@ -23,9 +23,9 @@ A valid flow must:
 - have an edge for every outcome a node can return
 - never have multiple outcomes from the same node leading to the same target, including `null`
 
-Outcomes exist only to choose what executes next. If multiple results would lead to the same target, use one outcome and store any result details in `context`.
+Outcomes exist only to choose what executes next. If multiple results would lead to the same target, use one outcome and store result details in `context`.
 
-For example, prefer:
+Prefer:
 
 `persist_user --done--> null`
 
@@ -63,9 +63,9 @@ Use concise snake_case outcomes such as `success`, `not_found`, `valid`, `invali
 
 # Node interface
 
-A node name maps to its CamelCase Ruby class, for example `orders/validate_order` maps to `Orders::ValidateOrder`.
+A node is a directory named after the node, with the node class in `node.rb`. The node name maps to the CamelCase namespace of that directory and the class is `Node` inside it, for example `orders/validate_order` is stored in `app/nodes/orders/validate_order/node.rb` and defines `Orders::ValidateOrder::Node`. A node without a namespace, such as `charge_payment`, is stored in `app/nodes/charge_payment/node.rb` and defines `ChargePayment::Node`.
 
-Every node implements:
+Every node class implements:
 
 ```ruby
 def self.call(context)
@@ -86,111 +86,135 @@ Run a flow from the entrypoint with `SyncTraverse::Runner`. Pass the flow name a
 context = SyncTraverse::Runner.call("orders/purchase", order_id: params[:order_id])
 ```
 
-The caller reads results from the returned `context`. When creating a new flow, wire this call into the existing entrypoint unless the user says otherwise.
+The caller reads results from the returned `context`.
 
-# Architecture
+When creating a new flow, wire this call into the existing entrypoint unless the user says otherwise.
 
-Orchestration lives only in the flow graph, and application-operation logic lives in nodes.
+# Node isolation
 
-A node must contain the actual application logic for the operation it represents. Do not make nodes thin wrappers around existing services, interactors, commands, organizers, or similar application-layer objects.
+Orchestration lives only in the flow graph. All implementation logic belongs to the node that performs the operation.
 
-When refactoring existing code into a flow, move the logic of an application operation into its corresponding node whenever practical.
+Each node must be fully self-contained.
 
-For example, prefer:
+A node must not depend on application-owned implementation code outside itself, including:
+
+- global application models
+- services
+- interactors
+- commands
+- repositories
+- query objects
+- API clients
+- serializers
+- helpers
+- implementation code owned by another node
+
+If a node needs such code, implement a node-local version inside that node's directory.
+
+Isolation and locality are mandatory. Do not extract or reuse application-owned implementation code across nodes merely to avoid duplication.
+
+Duplication between nodes is explicitly allowed and expected when it preserves node isolation.
+
+A node may depend only on:
+
+- Ruby standard library
+- third-party gems
+- databases and other infrastructure
+- external APIs and services
+- code owned by that node
+
+A node must never use implementation code owned by another node.
+
+For small node-specific types or helpers, define them directly inside the node class when that keeps the implementation easy to read.
+
+For example, `app/nodes/orders/charge_payment/node.rb`:
 
 ```ruby
-class CreateOrder
-  def self.call(context)
-    order = Order.new(
-      customer: context[:customer],
-      total: context[:total]
-    )
+module Orders
+  module ChargePayment
+    class Node
+      class Order < ActiveRecord::Base
+        self.table_name = "orders"
+      end
 
-    if order.save
-      context[:order] = order
-      :created
-    else
-      context[:errors] = order.errors
-      :invalid
+      def self.call(context)
+        order = Order.find(context[:order_id])
+        # ...
+      end
     end
   end
 end
 ```
 
-over:
+When node-specific code becomes large enough to hurt readability, move it into separate files in the same node directory, following Zeitwerk conventions. All files of a node live directly in its directory (`app/nodes/orders/charge_payment/`), including its tests.
 
-```ruby
-class CreateOrder
-  def self.call(context)
-    result = Orders::CreateService.call(context)
-    # ...
-  end
-end
+For example, two nodes of the same namespace side by side:
+
+```text
+app/nodes/
+  orders/
+    charge_payment/
+      node.rb              # Orders::ChargePayment::Node
+      order.rb             # Orders::ChargePayment::Order
+      stripe_client.rb     # Orders::ChargePayment::StripeClient
+      response_mapper.rb   # Orders::ChargePayment::ResponseMapper
+      test.rb
+    validate_order/
+      node.rb              # Orders::ValidateOrder::Node
+      test.rb
 ```
 
-if `Orders::CreateService` exists mainly to implement the `create_order` operation.
+The node directory is flat: subdirectories are not allowed. Files in this directory belong exclusively to the node and must not be reused by other nodes. Besides Ruby files, the directory may contain other node-owned files such as JSON fixtures or templates.
 
-Supporting code may be used when it represents a lower-level capability rather than an application operation, for example:
+A node must never call another node or flow. Its only way to influence what executes next is the outcome it returns.
 
-- models and persistence primitives
-- queries and scopes
-- value objects
-- calculations or pure transformations reused in multiple places
-- API clients and external integrations
-- serializers and parsers
-- generic utilities
+When refactoring legacy code into a flow, copy the required logic from existing models, services, interactors, commands, clients, and similar application objects into the relevant node instead of wrapping or delegating to them. Do not remove or modify the legacy code: the developer removes it consciously.
 
-Supporting code must not:
-
-- represent the same application operation as a node
-- call a node or flow
-- sequence application operations
-- decide which application operation runs next
-
-During legacy refactoring, inspect services, interactors, commands, and similar objects called by the code being migrated.
-
-If such an object primarily implements one operation represented by a node:
-
-1. move its application logic into the node
-2. check whether the old object is still used anywhere else
-3. if it is no longer used, remove it and any obsolete tests or references
-4. if it is still used elsewhere, keep only the reusable supporting logic that genuinely belongs outside the node
-
-Do not leave obsolete application-service wrappers behind after their logic has been migrated.
-
-A node may delegate technical details or reusable primitives, but a developer should be able to understand the application's operation by reading the node without having to follow another application-service object.
+The goal is that a developer or agent can understand, modify, and test a node by looking only at that node's directory.
 
 # Tool usage
 
-Change flows and node code only through `sync_traverse` tools. Use normal file-editing tools only for supporting application code (for example models, query objects, API clients, or value objects) and for the code that invokes the flow.
+Change flows and node code only through `sync_traverse` tools.
+
+Use normal file-editing tools only for:
+
+- wiring the flow into its existing entrypoint
+- infrastructure or project configuration explicitly required by the requested change
+
+Do not create new application-layer abstractions outside nodes.
 
 When modifying an existing flow, call `get_flow` first.
 
 Use `update_flow` for graph changes. Pass related removals and additions in one call. The operation is atomic and rejects invalid resulting flows.
 
-Referenced nodes are created automatically and isolated nodes are removed automatically.
+Referenced nodes are created automatically and isolated nodes are removed automatically from the graph. Node code is never removed automatically: code of nodes that no flow uses anymore stays in place.
+
+Delete a node's files (`update_node_code` with all its files set to `null`) only when the user explicitly asks for it. The tool rejects deleting a node that any flow still uses.
 
 # Implementation workflow
 
 When flow structure and code change together:
 
-1. Update the graph first.
-2. If the update left nodes that no flow uses anymore, call `prune_nodes` to delete their code. If the flow was left without nodes, it is deleted automatically; stop after this step.
-3. Store an updated Mermaid flowchart with `store_flow_diagram`. Label edges with outcomes and represent every terminal edge with its own `((End))` node.
-4. Inspect new or affected nodes with `get_node_code`.
-5. Use `update_node_code` only when a node is missing or its implementation no longer matches the outcomes required by the graph.
+1. Update the graph first. If the flow was deleted automatically because no nodes remain, stop.
+2. Store an updated Mermaid flowchart with `store_flow_diagram`. Label edges with outcomes and represent every terminal edge with its own `((End))` node.
+3. Inspect new or affected nodes with `get_node_code`.
+4. Implement each node as a self-contained operation, copying required legacy logic into it instead of delegating to existing application-layer abstractions.
+5. Use `update_node_code` only when a node is missing or its implementation no longer matches the required operation or outcomes.
 6. Ensure every outcome returned by touched node code has a matching edge and no undeclared outcome can be returned.
-7. Add or update unit tests for every node whose code changed.
-8. Run `run_node_tests(flow_name, testing_framework)`.
-9. If failures are caused by your changes, fix them and run the tests again.
+7. Add or update Minitest tests for every node whose code changed.
+8. After changing a node, search other nodes for duplicated code that may be affected by the same underlying change. This is especially important for external API contracts, endpoints, headers, authentication, schemas, protocols, database assumptions, or third-party integrations. Update other nodes only when the same change actually applies to them.
+9. Run `run_node_tests(flow_name)` for every affected flow.
+10. If failures are caused by your changes, fix them and run the tests again.
 
-Do not rewrite node code that already satisfies the flow.
-
-Never reference a class, constant, or method unless you confirmed it exists. Create missing supporting application code instead of assuming it exists.
+Do not rewrite node code that already satisfies the requested behavior and architecture.
 
 # Node tests
 
-Use the project's existing test framework. If none exists, use Minitest.
+Node tests always use Minitest, regardless of the application's other test frameworks.
+
+Each node's tests must live in that node's own directory, alongside its implementation, in files named `test.rb` or ending with `_test.rb`.
+
+Every test file starts with `require "sync_traverse/node_test_helper"` and defines classes inheriting from `ActiveSupport::TestCase`. Do not require the application's `test_helper`.
 
 Keep node tests simple and black-box:
 
@@ -200,12 +224,12 @@ Keep node tests simple and black-box:
 - cover meaningful outcomes
 - do not test private implementation details
 
-Stub only external boundaries such as remote APIs, third-party services, gateways, or external libraries.
+Stub only true external boundaries such as remote APIs, third-party services, or external libraries.
 
-Do not stub application-owned logic merely to isolate the node.
+Do not stub node-local implementation code.
 
-After writing tests, always run:
+After writing or updating tests, always run:
 
-`run_node_tests(flow_name, testing_framework)`
+`run_node_tests(flow_name)`
 
-Use `rspec` for RSpec projects and `minitest` for Minitest or projects without an existing test framework.
+Do not consider the implementation complete until the relevant node tests pass, unless the failure is clearly unrelated to your changes.

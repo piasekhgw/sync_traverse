@@ -1,6 +1,5 @@
 require "erb"
 require "fileutils"
-require "yaml"
 
 module SyncTraverse
   class Installer
@@ -15,15 +14,13 @@ module SyncTraverse
       "claude" => [File.join(TEMPLATES_DIR, "agents", "claude.md.erb"), File.join(".claude", "agents", "sync_traverse.md")]
     }.freeze
 
-    def call(target, nodes_dir:, flows_dir:, node_tests_dir:, root_dir: Dir.pwd)
+    def call(target, root_dir: Dir.pwd)
       template_path, relative_target = AGENT_TEMPLATES[target]
       unless template_path
         raise ArgumentError,
               "Unknown target '#{target}', expected one of: #{AGENT_TEMPLATES.keys.join(", ")}"
       end
 
-      settings = { "nodes_dir" => nodes_dir, "flows_dir" => flows_dir, "node_tests_dir" => node_tests_dir }
-      write_file(root_dir, Config::FILE_NAME, settings.to_yaml)
       write_file(root_dir, ".mcp.json", File.read(File.join(TEMPLATES_DIR, ".mcp.json")))
       write_file(root_dir, relative_target, render(template_path))
       update_agents_md(root_dir)

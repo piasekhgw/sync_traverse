@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class UpdateFlow < FlowBase
       tool_name "update_flow"
-      description "Updates the flow in a single step: removes edges first, then adds edges. Referenced nodes are created automatically; nodes that become isolated are removed automatically. A flow left without nodes is deleted. Code of nodes no longer used by any flow is kept until prune_nodes is called."
+      description "Updates the flow in a single step: removes edges first, then adds edges. Referenced nodes are created automatically; nodes that become isolated are removed automatically. A flow left without nodes is deleted. Code of nodes no longer used by any flow is never deleted automatically; delete it explicitly with update_node_code only when the user decides to."
       input_schema(
         properties: {
           flow_name: {

@@ -2,8 +2,6 @@ require "test_helper"
 
 module SyncTraverse
   class InstallerTest < Minitest::Test
-    PATHS = { nodes_dir: "app/nodes", flows_dir: "app/flows", node_tests_dir: "test/nodes" }.freeze
-
     def setup
       @root_dir = Dir.mktmpdir("sync_traverse_installer_test")
     end
@@ -32,19 +30,10 @@ module SyncTraverse
       assert_raises(ArgumentError) { install("bogus") }
     end
 
-    def test_writes_paths_to_config_file
+    def test_does_not_write_config_file
       install("claude")
 
-      assert_equal(
-        { "nodes_dir" => "app/nodes", "flows_dir" => "app/flows", "node_tests_dir" => "test/nodes" },
-        YAML.safe_load_file(File.join(@root_dir, "sync_traverse.yml"))
-      )
-    end
-
-    def test_written_config_can_be_loaded
-      install("claude")
-
-      assert_equal File.join(File.realpath(@root_dir), "app/flows"), Config.new(File.realpath(@root_dir)).flows_dir
+      refute_path_exists File.join(@root_dir, "sync_traverse.yml")
     end
 
     def test_mcp_json_has_no_path_configuration
@@ -80,7 +69,7 @@ module SyncTraverse
     private
 
     def install(target)
-      capture_io { Installer.new.call(target, root_dir: @root_dir, **PATHS) }
+      capture_io { Installer.new.call(target, root_dir: @root_dir) }
     end
   end
 end

@@ -12,20 +12,24 @@ module SyncTraverse
       )
       write_node_code("orders/validate_order", <<~RUBY)
         module Orders
-          class ValidateOrder
-            def self.call(context)
-              context[:steps] << :validate_order
-              :valid
+          module ValidateOrder
+            class Node
+              def self.call(context)
+                context[:steps] << :validate_order
+                :valid
+              end
             end
           end
         end
       RUBY
       write_node_code("orders/charge_payment", <<~RUBY)
         module Orders
-          class ChargePayment
-            def self.call(context)
-              context[:steps] << :charge_payment
-              :paid
+          module ChargePayment
+            class Node
+              def self.call(context)
+                context[:steps] << :charge_payment
+                :paid
+              end
             end
           end
         end

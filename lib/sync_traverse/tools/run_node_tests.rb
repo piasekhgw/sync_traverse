@@ -2,57 +2,40 @@ require "open3"
 
 module SyncTraverse
   module Tools
-    class RunNodeTests < FlowBase
+    class RunNodeTests < NodeCodeBase
       tool_name "run_node_tests"
-      description "Runs unit tests for all nodes used by a flow."
+      description "Runs the Minitest tests (*test.rb files in node directories) of all nodes used by a flow."
       input_schema(
         properties: {
           flow_name: {
             type: "string",
             description: "The flow name. Must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
-          },
-          testing_framework: {
-            type: "string",
-            enum: %w[rspec minitest],
-            description: "The testing framework to use for running the node tests."
           }
         },
-        required: %w[flow_name testing_framework]
+        required: ["flow_name"]
       )
 
       class << self
-        def call(flow_name:, testing_framework:, server_context:)
+        def call(flow_name:, server_context:)
           with_input_validation(flow_name: flow_name) do
-            test_files = test_files_for(flow_name, testing_framework)
+            test_files = test_files_for(flow_name)
 
             return error_response("No node tests found for flow: #{flow_name}") if test_files.empty?
 
-            run_tests(test_files, testing_framework)
+            run_tests(test_files)
           end
         end
 
         private
 
-        def run_tests(test_files, testing_framework)
-          command =
-            case testing_framework
-            when "rspec"
-              [
-                "bundle",
-                "exec",
-                "rspec",
-                *test_files
-              ]
-            when "minitest"
-              [
-                "bundle",
-                "exec",
-                "ruby",
-                "-Itest",
-                "-e",
-                test_files.map { |file| "require #{File.expand_path(file).inspect}" }.join(";")
-              ]
-            end
+        def run_tests(test_files)
+          command = [
+            "bundle",
+            "exec",
+            "ruby",
+            "-e",
+            test_files.map { |file| "require #{File.expand_path(file).inspect}" }.join(";")
+          ]
 
           stdout, stderr, status = Open3.capture3(*command)
 
@@ -63,13 +46,9 @@ module SyncTraverse
           end
         end
 
-        def test_files_for(flow_name, testing_framework)
-          tests_suffix = testing_framework == "rspec" ? "spec.rb" : "test.rb"
-          nodes = get_flow(flow_name).definition.keys
-
-          nodes.filter_map do |node|
-            path = File.join(SyncTraverse.config.node_tests_dir, "#{node}_#{tests_suffix}")
-            path if File.exist?(path)
+        def test_files_for(flow_name)
+          get_flow(flow_name).definition.keys.flat_map do |node|
+            node_files(node).filter_map { |file| node_file_path(node, file) if test_file?(file) }
           end
         end
       end

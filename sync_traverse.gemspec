@@ -14,6 +14,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "activesupport", ">= 6.1"
   spec.add_dependency "mcp", ">= 1.0.0"
+  spec.add_dependency "minitest", ">= 5.1"
   spec.add_dependency "rgl", ">= 0.5.0"
 
   spec.files = Dir["lib/**/*.rb", "templates/**/*", "prompts/**/*", "exe/*", "README.md", ".gitignore"]

@@ -51,7 +51,7 @@ module SyncTraverse
 
         refute_predicate response, :error?
         assert_equal "Success. Flow has no nodes left and was deleted.", response.content.first[:text]
-        refute File.directory?(File.join(flows_dir, "orders"))
+        refute File.directory?(File.join(flows_dir, "orders", "purchase"))
       end
 
       def test_rejects_cycle_without_saving
@@ -136,6 +136,19 @@ module SyncTraverse
           "Outcome 'ok' of node 'a' already targets 'b'; remove that edge first",
           response.content.first[:text]
         )
+      end
+
+      def test_rejects_node_nested_in_namespace_of_another_node
+        write_node_code("orders/validate_order", "'code'")
+
+        response = UpdateFlow.call(
+          flow_name: "orders/purchase",
+          add_edges: [{ source: "orders/validate_order/child", target: nil, source_outcome: "ok" }],
+          server_context: {}
+        )
+
+        assert_predicate response, :error?
+        assert_equal "Node 'orders/validate_order/child' is nested in namespace of another node: orders/validate_order", response.content.first[:text]
       end
 
       def test_rejects_invalid_node_name

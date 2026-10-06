@@ -40,7 +40,7 @@ module SyncTraverse
     end
 
     def node_class(node_name)
-      node_name.camelize.constantize
+      "#{node_name}/node".camelize.constantize
     end
   end
 end

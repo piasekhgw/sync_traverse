@@ -7,10 +7,6 @@ require "sync_traverse"
 
 test_root = File.expand_path("../tmp/test", __dir__)
 FileUtils.mkdir_p(test_root)
-File.write(
-  File.join(test_root, SyncTraverse::Config::FILE_NAME),
-  { "nodes_dir" => "nodes", "flows_dir" => "flows", "node_tests_dir" => "node_tests" }.to_yaml
-)
 SyncTraverse.config = SyncTraverse::Config.new(test_root)
 
 module SyncTraverse
@@ -26,7 +22,7 @@ module SyncTraverse
     private
 
     def cleanup_dirs
-      [flows_dir, nodes_dir, SyncTraverse.config.node_tests_dir].each { |dir| FileUtils.rm_rf(dir) }
+      [flows_dir, nodes_dir].each { |dir| FileUtils.rm_rf(dir) }
     end
 
     def flows_dir
@@ -45,12 +41,8 @@ module SyncTraverse
       File.join(flows_dir, flow_name, "diagram.mmd")
     end
 
-    def node_path(node_name)
-      File.join(nodes_dir, "#{node_name}.rb")
-    end
-
-    def node_test_path(node_name, suffix = "test.rb")
-      File.join(SyncTraverse.config.node_tests_dir, "#{node_name}_#{suffix}")
+    def node_path(node_name, file_name = "node.rb")
+      File.join(nodes_dir, node_name, file_name)
     end
 
     def write_flow_definition(flow_name, definition)
@@ -59,17 +51,19 @@ module SyncTraverse
       File.write(path, JSON.generate(definition))
     end
 
-    def write_node_code(node_name, code)
-      path = node_path(node_name)
+    def write_node_file(node_name, code, file_name: "node.rb")
+      path = node_path(node_name, file_name)
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, code)
-      load path
+      path
     end
 
-    def write_node_test(node_name, code, suffix: "test.rb")
-      path = node_test_path(node_name, suffix)
-      FileUtils.mkdir_p(File.dirname(path))
-      File.write(path, code)
+    def write_node_code(node_name, code)
+      load write_node_file(node_name, code)
+    end
+
+    def write_node_test(node_name, code, file_name: "test.rb")
+      write_node_file(node_name, code, file_name: file_name)
     end
   end
 end

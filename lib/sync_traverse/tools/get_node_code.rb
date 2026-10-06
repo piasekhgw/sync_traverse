@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class GetNodeCode < NodeCodeBase
       tool_name "get_node_code"
-      description "Returns the code for the given node. Call this before modifying a node code."
+      description "Returns all files owned by the given node as a JSON object mapping file names to their content. The files live directly in the node directory: 'node.rb' is the node class itself; other files are node-local classes, tests ('test.rb') and other files. Returns an empty object if the node does not exist. Call this before modifying a node."
       input_schema(
         properties: {
           node: {
