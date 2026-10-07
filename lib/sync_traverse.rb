@@ -19,5 +19,3 @@ require_relative "sync_traverse/tools/store_flow_diagram"
 require_relative "sync_traverse/tools/get_node_code"
 require_relative "sync_traverse/tools/update_node_code"
 require_relative "sync_traverse/tools/run_node_tests"
-
-require_relative "sync_traverse/railtie" if defined?(Rails::Railtie)

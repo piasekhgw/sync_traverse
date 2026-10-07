@@ -22,7 +22,7 @@ module SyncTraverse
           FileUtils.rm_f(path)
 
           dir = File.dirname(path)
-          while dir.start_with?("#{nodes_dir}/") && Dir.empty?(dir)
+          while [nodes_dir, tests_dir].any? { |root| dir.start_with?("#{root}/") } && Dir.empty?(dir)
             Dir.rmdir(dir)
             dir = File.dirname(dir)
           end
@@ -42,9 +42,16 @@ module SyncTraverse
         end
 
         def node_files(node_name)
-          Dir.glob(File.join(nodes_dir, node_name, "*")).filter_map do |path|
+          code_files = directory_files(File.join(nodes_dir, node_name))
+          test_files = directory_files(File.join(tests_dir, node_name))
+
+          (code_files + test_files).sort
+        end
+
+        def directory_files(dir)
+          Dir.glob(File.join(dir, "*")).filter_map do |path|
             File.basename(path) if File.file?(path)
-          end.sort
+          end
         end
 
         def test_file?(file)
@@ -52,11 +59,15 @@ module SyncTraverse
         end
 
         def node_file_path(node_name, file)
-          File.join(nodes_dir, node_name, file)
+          File.join(test_file?(file) ? tests_dir : nodes_dir, node_name, file)
         end
 
         def nodes_dir
           SyncTraverse.config.nodes_dir
+        end
+
+        def tests_dir
+          SyncTraverse.config.tests_dir
         end
       end
     end

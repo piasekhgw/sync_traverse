@@ -4,7 +4,7 @@ module SyncTraverse
   module Tools
     class RunNodeTests < NodeCodeBase
       tool_name "run_node_tests"
-      description "Runs the Minitest tests (*test.rb files in node directories) of all nodes used by a flow."
+      description "Runs the Minitest tests (test files in test/nodes/<node>/) of all nodes used by a flow."
       input_schema(
         properties: {
           flow_name: {

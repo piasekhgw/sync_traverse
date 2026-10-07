@@ -22,7 +22,7 @@ module SyncTraverse
     private
 
     def cleanup_dirs
-      [flows_dir, nodes_dir].each { |dir| FileUtils.rm_rf(dir) }
+      [flows_dir, nodes_dir, tests_dir].each { |dir| FileUtils.rm_rf(dir) }
     end
 
     def flows_dir
@@ -31,6 +31,10 @@ module SyncTraverse
 
     def nodes_dir
       SyncTraverse.config.nodes_dir
+    end
+
+    def tests_dir
+      SyncTraverse.config.tests_dir
     end
 
     def flow_definition_path(flow_name)
@@ -45,6 +49,10 @@ module SyncTraverse
       File.join(nodes_dir, node_name, file_name)
     end
 
+    def node_test_path(node_name, file_name = "test.rb")
+      File.join(tests_dir, node_name, file_name)
+    end
+
     def write_flow_definition(flow_name, definition)
       path = flow_definition_path(flow_name)
       FileUtils.mkdir_p(File.dirname(path))
@@ -52,10 +60,7 @@ module SyncTraverse
     end
 
     def write_node_file(node_name, code, file_name: "node.rb")
-      path = node_path(node_name, file_name)
-      FileUtils.mkdir_p(File.dirname(path))
-      File.write(path, code)
-      path
+      write_code_file(node_path(node_name, file_name), code)
     end
 
     def write_node_code(node_name, code)
@@ -63,7 +68,13 @@ module SyncTraverse
     end
 
     def write_node_test(node_name, code, file_name: "test.rb")
-      write_node_file(node_name, code, file_name: file_name)
+      write_code_file(node_test_path(node_name, file_name), code)
+    end
+
+    def write_code_file(path, code)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, code)
+      path
     end
   end
 end

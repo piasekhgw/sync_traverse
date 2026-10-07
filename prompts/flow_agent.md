@@ -69,7 +69,7 @@ end
 
 `context` is a shared Hash with symbol keys. The node reads its input from it, writes its results to it and returns one Symbol matching one of its outgoing edge outcomes. A node must never call another node or flow: the returned outcome is its only way to influence what executes next.
 
-The node directory is flat (no subdirectories) and holds everything the node owns: `node.rb`, additional Ruby files, tests and other files such as JSON fixtures or templates. Additional Ruby files follow Zeitwerk conventions within the node namespace, for example `app/nodes/orders/charge_payment/order.rb` defines `Orders::ChargePayment::Order`.
+The node directory is flat (no subdirectories) and holds everything the node owns except its tests: `node.rb`, additional Ruby files and other files such as JSON fixtures or templates. Additional Ruby files follow Zeitwerk conventions within the node namespace, for example `app/nodes/orders/charge_payment/order.rb` defines `Orders::ChargePayment::Order`. Tests live outside the application code, in `test/nodes/<node name>/`.
 
 # Invoking a flow
 
@@ -134,9 +134,14 @@ app/nodes/
       order.rb             # Orders::ChargePayment::Order
       stripe_client.rb     # Orders::ChargePayment::StripeClient
       response_mapper.rb   # Orders::ChargePayment::ResponseMapper
-      test.rb
     validate_order/
       node.rb              # Orders::ValidateOrder::Node
+
+test/nodes/
+  orders/
+    charge_payment/
+      test.rb
+    validate_order/
       test.rb
 ```
 
@@ -144,13 +149,13 @@ app/nodes/
 
 Change flows and node code only through `sync_traverse` tools. Use normal file-editing tools only to wire the flow into its entrypoint and for infrastructure or configuration explicitly required by the requested change, never to add application code outside nodes.
 
-Every file inside `app/nodes/` (`node.rb`, additional Ruby files, tests such as `test.rb`, fixtures and any other file) must be created, changed or deleted exclusively with `update_node_code`, and every file inside `app/flows/` (`definition.json`, `diagram.mmd`) exclusively with `update_flow` and `store_flow_diagram`. Never edit them with file-editing tools or terminal commands, not even for a one-line fix or a test-only change. To change a node file, read the node with `get_node_code` and write the file back with `update_node_code`.
+Every file inside `app/nodes/` and `test/nodes/` (`node.rb`, additional Ruby files, tests such as `test.rb`, fixtures and any other file) must be created, changed or deleted exclusively with `update_node_code`, and every file inside `app/flows/` (`definition.json`, `diagram.mmd`) exclusively with `update_flow` and `store_flow_diagram`. Never edit them with file-editing tools or terminal commands, not even for a one-line fix or a test-only change. To change a node file, read the node with `get_node_code` and write the file back with `update_node_code`.
 
 - `get_flow`: read the flow; call it before modifying an existing flow.
 - `update_flow`: change the graph. Pass all related removals and additions in one call; the operation is atomic and rejects invalid resulting flows. It adds referenced nodes to the graph, removes nodes left without edges and deletes the flow when no nodes remain. It never creates or deletes node code.
 - `store_flow_diagram`: save the Mermaid diagram of the flow.
 - `get_node_code`: read all files of a node.
-- `update_node_code`: write files with their complete content or delete them with `null`; files not listed stay untouched. `node.rb` must exist after every update. Setting all files of a node to `null` deletes the node: do it only when the user explicitly asks; it is rejected while any flow uses the node.
+- `update_node_code`: write files with their complete content or delete them with `null`; files not listed stay untouched. Test files (`test.rb` or `*_test.rb`) are listed like other files and are stored automatically in `test/nodes/<node name>/`. `node.rb` must exist after every update. Setting all files of a node to `null` deletes the node: do it only when the user explicitly asks; it is rejected while any flow uses the node.
 - `run_node_tests`: run the tests of all nodes used by a flow.
 
 # Workflow
@@ -166,7 +171,7 @@ Every file inside `app/nodes/` (`node.rb`, additional Ruby files, tests such as 
 
 # Node tests
 
-Node tests use Minitest, regardless of the application's other test frameworks. They live in the node directory, in files named `test.rb` or ending with `_test.rb`.
+Node tests use Minitest, regardless of the application's other test frameworks. They live in `test/nodes/<node name>/`, in files named `test.rb` or ending with `_test.rb` (pass them to `update_node_code` under these names).
 
 Every test file starts with `require "sync_traverse/node_test_helper"` (never the application's `test_helper`) and defines its test class inside the node namespace, inheriting from `ActiveSupport::TestCase`, for example `Orders::ChargePayment::NodeTest`. Tests of all nodes of a flow run in one process, so test class names must not collide.
 

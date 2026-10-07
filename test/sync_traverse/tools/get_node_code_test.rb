@@ -39,7 +39,7 @@ module SyncTraverse
 
       def test_returns_files_of_other_types
         write_node_code("orders/validate_order", "'node'")
-        write_node_test("orders/validate_order", "{}", file_name: "schema.json")
+        write_node_file("orders/validate_order", "{}", file_name: "schema.json")
 
         response = GetNodeCode.call(node: "orders/validate_order", server_context: {})
 
