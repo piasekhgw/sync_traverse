@@ -68,13 +68,15 @@ module SyncTraverse
         RUBY
       end
 
-      def failing_test(class_name)
+      def failing_test(class_name, message = "boom")
         <<~RUBY
+          # frozen_string_literal: true
+
           require "minitest/autorun"
 
           class #{class_name} < Minitest::Test
             def test_fails
-              assert false, "boom"
+              assert false, #{message.inspect}
             end
           end
         RUBY
