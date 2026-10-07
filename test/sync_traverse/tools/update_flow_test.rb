@@ -138,19 +138,6 @@ module SyncTraverse
         )
       end
 
-      def test_rejects_node_nested_in_namespace_of_another_node
-        write_node_code("orders/validate_order", "'code'")
-
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_edges: [{ source: "orders/validate_order/child", target: nil, source_outcome: "ok" }],
-          server_context: {}
-        )
-
-        assert_predicate response, :error?
-        assert_equal "Node 'orders/validate_order/child' is nested in namespace of another node: orders/validate_order", response.content.first[:text]
-      end
-
       def test_rejects_invalid_node_name
         response = UpdateFlow.call(
           flow_name: "orders/purchase",

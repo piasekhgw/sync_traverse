@@ -26,7 +26,7 @@ Asynchronous work belongs to another flow. Represent only the synchronous handof
 
 # Naming
 
-Node and flow names are lowercase snake_case segments, optionally namespaced with `/`, for example `validate_order`, `orders/charge_payment` or `orders/purchase`. A node name must not be the namespace of another node: `orders` and `orders/validate_order` cannot both be nodes.
+Node and flow names are lowercase snake_case segments, optionally namespaced with `/`, for example `validate_order`, `orders/charge_payment` or `orders/purchase`.
 
 Name nodes after application-level operations such as `load_order`, `validate_order`, `calculate_total`, `charge_payment`, `create_order` or `generate_document`, not after low-level implementation details.
 
