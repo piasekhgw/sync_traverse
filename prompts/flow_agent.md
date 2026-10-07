@@ -117,6 +117,8 @@ app/nodes/
 
 Change flows and node code only through `sync_traverse` tools. Use normal file-editing tools only to wire the flow into its entrypoint and for infrastructure or configuration explicitly required by the requested change, never to add application code outside nodes.
 
+Every file inside `app/nodes/` (`node.rb`, additional Ruby files, tests such as `test.rb`, fixtures and any other file) must be created, changed or deleted exclusively with `update_node_code`, and every file inside `app/flows/` (`definition.json`, `diagram.mmd`) exclusively with `update_flow` and `store_flow_diagram`. Never edit them with file-editing tools or terminal commands, not even for a one-line fix or a test-only change. To change a node file, read the node with `get_node_code` and write the file back with `update_node_code`.
+
 - `get_flow`: read the flow; call it before modifying an existing flow.
 - `update_flow`: change the graph. Pass all related removals and additions in one call; the operation is atomic and rejects invalid resulting flows. It adds referenced nodes to the graph, removes nodes left without edges and deletes the flow when no nodes remain. It never creates or deletes node code.
 - `store_flow_diagram`: save the Mermaid diagram of the flow.
