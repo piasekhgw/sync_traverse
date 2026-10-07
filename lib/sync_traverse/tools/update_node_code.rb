@@ -12,7 +12,7 @@ module SyncTraverse
           files: {
             type: "object",
             additionalProperties: { type: %w[string null] },
-            description: "Map of file names to the complete content of the file, or null to delete the file. All files live directly in the node directory (for node 'orders/validate_order' it is 'orders/validate_order/'): 'node.rb' is the node class itself, other files are for example 'order.rb', 'test.rb' or 'schema.json'. The node directory is flat: subdirectories are not allowed. Files of any type with a lowercase snake_case name and an extension are allowed. To delete a node, set all of its files to null."
+            description: "JSON object: each key is a file name, each value is the complete new content of that file as a string, or null to delete the file. Example: {\"node.rb\": \"module Orders\\n  module ValidateOrder\\n    class Node\\n      ...\\n    end\\n  end\\nend\\n\", \"test.rb\": \"...\", \"old_helper.rb\": null}. Must be an object, never a plain string. File names must be lowercase snake_case with an extension (for example 'node.rb', 'order.rb', 'test.rb', 'schema.json') and live directly in the node directory (for node 'orders/validate_order' it is 'orders/validate_order/'); subdirectories are not allowed. 'node.rb' is the node class itself. To delete a node, set all of its files to null."
           }
         },
         required: %w[node files]
