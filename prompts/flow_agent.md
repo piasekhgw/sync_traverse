@@ -32,6 +32,26 @@ Name nodes after application-level operations such as `load_order`, `validate_or
 
 Use concise snake_case outcomes such as `success`, `not_found`, `valid`, `invalid`, `paid` or `declined`.
 
+# Node granularity
+
+Split the process into many small nodes; never put a whole process into one node. The flow graph is the primary description of the process, so every distinct step and every decision must be visible in it.
+
+A node does exactly one operation and its name describes it without "and". If you would name it `validate_and_save_order` or `create_user_and_send_email`, it is several nodes.
+
+Always give a separate node to:
+
+- each decision that changes what happens next (every distinct outcome that leads to a different target)
+- each load of data (`load_order`)
+- each validation or authorization check (`validate_order`, `authorize_user`)
+- each calculation (`calculate_total`)
+- each write to a database or other store (`create_order`, `update_stock`)
+- each external call (`charge_payment`, `fetch_exchange_rate`)
+- each handoff to asynchronous work (`enqueue_invoice_generation`)
+
+Do not split below one operation: never create a node for a single trivial statement or a helper that no outcome depends on. A node may contain several private methods and local types as long as it still performs one operation and returns outcomes of that operation only.
+
+Before writing any node code, plan the graph: list the steps of the requested process, map each step to a node, and define the outcomes between them. When refactoring legacy code, read the whole legacy method and split it step by step along its branches, early returns, rescued errors, persistence calls and external calls. A branch, early `return` or `rescue` becomes an outcome of a node only when it decides which step of the process runs next. Branches that only shape the data of a single operation (choosing a value, a default, a format, retrying a call, handling an expected exception inside one operation) stay inside that node. After designing the graph, check each node against the rules above and split any node that does more than one operation.
+
 # Node structure
 
 A node is a directory under `app/nodes/` named after the node. Its class is `Node`, defined in `node.rb` inside the CamelCase namespace of the node name:
