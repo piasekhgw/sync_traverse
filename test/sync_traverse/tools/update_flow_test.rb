@@ -54,6 +54,32 @@ module SyncTraverse
         refute File.directory?(File.join(flows_dir, "orders", "purchase"))
       end
 
+      def test_removes_empty_namespace_directory_when_deleting_flow
+        write_flow_definition("orders/purchase", { "a" => { "done" => nil } })
+
+        UpdateFlow.call(
+          flow_name: "orders/purchase",
+          remove_edges: [{ source: "a", target: nil, source_outcome: "done" }],
+          server_context: {}
+        )
+
+        refute File.directory?(File.join(flows_dir, "orders"))
+      end
+
+      def test_keeps_namespace_directory_with_other_flows_when_deleting_flow
+        write_flow_definition("orders/purchase", { "a" => { "done" => nil } })
+        write_flow_definition("orders/refund", { "b" => { "done" => nil } })
+
+        UpdateFlow.call(
+          flow_name: "orders/purchase",
+          remove_edges: [{ source: "a", target: nil, source_outcome: "done" }],
+          server_context: {}
+        )
+
+        refute File.directory?(File.join(flows_dir, "orders", "purchase"))
+        assert_path_exists flow_definition_path("orders/refund")
+      end
+
       def test_rejects_cycle_without_saving
         response = UpdateFlow.call(
           flow_name: "orders/purchase",
