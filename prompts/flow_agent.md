@@ -48,7 +48,7 @@ Always give a separate node to:
 - each external call (`charge_payment`, `fetch_exchange_rate`)
 - each handoff to asynchronous work (`enqueue_invoice_generation`)
 
-Do not split below one operation: never create a node for a single trivial statement or a helper that no outcome depends on. A node may contain several private methods and local types as long as it still performs one operation and returns outcomes of that operation only.
+Do not split below one operation: never create a node for a single trivial statement or a helper that no outcome depends on. A node may use several private methods and node-local classes in separate files as long as it still performs one operation and returns outcomes of that operation only.
 
 Before writing any node code, plan the graph: list the steps of the requested process, map each step to a node, and define the outcomes between them. When refactoring legacy code, read the whole legacy method and split it step by step along its branches, early returns, rescued errors, persistence calls and external calls. A branch, early `return` or `rescue` becomes an outcome of a node only when it decides which step of the process runs next. Branches that only shape the data of a single operation (choosing a value, a default, a format, retrying a call, handling an expected exception inside one operation) stay inside that node. After designing the graph, check each node against the rules above and split any node that does more than one operation.
 
@@ -98,16 +98,24 @@ A node must not use application-owned code outside its directory: global applica
 
 When refactoring legacy code into a flow, copy the required logic into the relevant nodes instead of wrapping or delegating to it. Do not modify or remove the legacy code: the developer removes it deliberately.
 
-Define small node-specific types and helpers directly inside the node class, for example in `app/nodes/orders/charge_payment/node.rb`:
+Put node-specific types and helpers in separate files in the node directory, one class per file, instead of defining them inline in `node.rb`. Keep `node.rb` short: it holds `self.call(context)` and the private methods that run the operation, and refers to the other classes of its namespace. For example, `app/nodes/orders/charge_payment/order.rb`:
+
+```ruby
+module Orders
+  module ChargePayment
+    class Order < ActiveRecord::Base
+      self.table_name = "orders"
+    end
+  end
+end
+```
+
+and `app/nodes/orders/charge_payment/node.rb`:
 
 ```ruby
 module Orders
   module ChargePayment
     class Node
-      class Order < ActiveRecord::Base
-        self.table_name = "orders"
-      end
-
       def self.call(context)
         order = Order.find(context[:order_id])
         # ...
@@ -117,7 +125,7 @@ module Orders
 end
 ```
 
-When they grow large enough to hurt readability, move them into separate files in the node directory. For example, two nodes of the same namespace side by side:
+Only a trivial one-line constant or private method may stay in `node.rb`. For example, two nodes of the same namespace side by side:
 
 ```text
 app/nodes/
