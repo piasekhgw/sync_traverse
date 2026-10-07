@@ -10,7 +10,7 @@ module SyncTraverse
     def call
       return [] if flow_definition.empty?
 
-      [acyclic_error, source_node_error, *duplicate_target_errors].compact
+      [acyclic_error, source_node_error].compact
     end
 
     private
@@ -26,18 +26,6 @@ module SyncTraverse
 
       found = source_nodes.empty? ? "none" : source_nodes.join(", ")
       "Flow must have exactly one source node, found: #{found}"
-    end
-
-    def duplicate_target_errors
-      flow_definition.flat_map do |node, outcomes|
-        outcomes_by_target = outcomes.keys.group_by { |outcome| outcomes[outcome] }
-        duplicates = outcomes_by_target.select { |_target, names| names.size > 1 }
-
-        duplicates.map do |target, names|
-          target_label = target.nil? ? "null" : "'#{target}'"
-          "Node '#{node}' has multiple outcomes leading to #{target_label}: #{names.join(", ")}"
-        end
-      end
     end
 
     def source_nodes

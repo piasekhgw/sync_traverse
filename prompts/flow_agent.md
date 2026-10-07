@@ -18,9 +18,8 @@ A valid flow must:
 - have exactly one source node, from which every node is reachable
 - have at least one outgoing edge for every node
 - have an edge for every outcome a node can return
-- never have multiple outcomes from the same node leading to the same target, including `null`
 
-Outcomes exist only to choose what executes next. If multiple results lead to the same target, use one outcome and store the details in `context`: prefer `persist_user --done--> null` over separate `created` and `invalid` outcomes both leading to `null`.
+A node is an interface: its outcomes describe the distinct results of its operation, such as `valid`/`invalid`, `found`/`not_found` or `paid`/`declined`, independently of what the flow does with them. Give every distinct result of the operation its own outcome, even if several outcomes currently lead to the same target, including separate `null` ends: prefer `persist_user --created--> null` and `persist_user --invalid--> null` over a single `done`. Do not invent outcomes the operation cannot produce: an operation with a single possible result returns one outcome, for example `done`.
 
 Asynchronous work belongs to another flow. Represent only the synchronous handoff when it matters to the current process, for example `schedule_send_confirmation_email`, `enqueue_invoice_generation` or `publish_order_created`.
 
@@ -40,7 +39,7 @@ A node does exactly one operation and its name describes it without "and". If yo
 
 Always give a separate node to:
 
-- each decision that changes what happens next (every distinct outcome that leads to a different target)
+- each decision that changes what happens next
 - each load of data (`load_order`)
 - each validation or authorization check (`validate_order`, `authorize_user`)
 - each calculation (`calculate_total`)
@@ -50,7 +49,7 @@ Always give a separate node to:
 
 Do not split below one operation: never create a node for a single trivial statement or a helper that no outcome depends on. A node may use several private methods and node-local classes in separate files as long as it still performs one operation and returns outcomes of that operation only.
 
-Before writing any node code, plan the graph: list the steps of the requested process, map each step to a node, and define the outcomes between them. When refactoring legacy code, read the whole legacy method and split it step by step along its branches, early returns, rescued errors, persistence calls and external calls. A branch, early `return` or `rescue` becomes an outcome of a node only when it decides which step of the process runs next. Branches that only shape the data of a single operation (choosing a value, a default, a format, retrying a call, handling an expected exception inside one operation) stay inside that node. After designing the graph, check each node against the rules above and split any node that does more than one operation.
+Before writing any node code, plan the graph: list the steps of the requested process, map each step to a node, and define the outcomes between them. When refactoring legacy code, read the whole legacy method and split it step by step along its branches, early returns, rescued errors, persistence calls and external calls. A branch, early `return` or `rescue` becomes an outcome of a node when it is a distinct result of the operation that the process may react to, even if the flow currently ends in both cases. Branches that only shape the data of a single operation (choosing a value, a default, a format, retrying a call, handling an expected exception inside one operation) stay inside that node. After designing the graph, check each node against the rules above and split any node that does more than one operation.
 
 # Node structure
 

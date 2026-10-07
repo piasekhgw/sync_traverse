@@ -72,7 +72,7 @@ module SyncTraverse
         refute_path_exists flow_definition_path("orders/purchase")
       end
 
-      def test_rejects_multiple_outcomes_leading_to_same_node
+      def test_allows_multiple_outcomes_leading_to_same_node
         response = UpdateFlow.call(
           flow_name: "orders/purchase",
           add_edges: [
@@ -82,15 +82,10 @@ module SyncTraverse
           server_context: {}
         )
 
-        assert_predicate response, :error?
-        assert_equal(
-          "Node 'a' has multiple outcomes leading to 'b': x, y",
-          response.content.first[:text]
-        )
-        refute_path_exists flow_definition_path("orders/purchase")
+        refute_predicate response, :error?
       end
 
-      def test_rejects_multiple_outcomes_leading_to_null
+      def test_allows_multiple_outcomes_leading_to_null
         response = UpdateFlow.call(
           flow_name: "orders/purchase",
           add_edges: [
@@ -100,12 +95,8 @@ module SyncTraverse
           server_context: {}
         )
 
-        assert_predicate response, :error?
-        assert_equal(
-          "Node 'persist_user' has multiple outcomes leading to null: created, invalid",
-          response.content.first[:text]
-        )
-        refute_path_exists flow_definition_path("orders/purchase")
+        refute_predicate response, :error?
+        assert_equal({ "created" => nil, "invalid" => nil }, JSON.parse(File.read(flow_definition_path("orders/purchase")))["persist_user"])
       end
 
       def test_allows_same_target_from_different_nodes
