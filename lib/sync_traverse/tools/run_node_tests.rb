@@ -40,10 +40,14 @@ module SyncTraverse
           stdout, stderr, status = Open3.capture3(*command)
 
           if status.success?
-            text_response(stdout)
+            text_response(utf8(stdout))
           else
-            error_response([stdout, stderr].reject(&:empty?).join("\n"))
+            error_response([stdout, stderr].filter_map { |output| utf8(output) unless output.empty? }.join("\n"))
           end
+        end
+
+        def utf8(output)
+          output.dup.force_encoding(Encoding::UTF_8).scrub
         end
 
         def test_files_for(flow_name)

@@ -54,7 +54,28 @@ module SyncTraverse
         assert_match(/boom/, response.content.first[:text])
       end
 
+      def test_returns_utf8_output_regardless_of_default_external_encoding
+        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_node_test("validate_order", failing_test("ValidateOrderTest", "Nale\u017Cy wybra\u0107 miejsce"))
+
+        response = with_default_external(Encoding::US_ASCII) do
+          RunNodeTests.call(flow_name: "orders/purchase", server_context: {})
+        end
+        text = response.content.first[:text]
+
+        assert_equal Encoding::UTF_8, text.encoding
+        assert_includes JSON.generate(text), "Należy wybrać miejsce"
+      end
+
       private
+
+      def with_default_external(encoding)
+        original = Encoding.default_external
+        Encoding.default_external = encoding
+        yield
+      ensure
+        Encoding.default_external = original
+      end
 
       def passing_test(class_name)
         <<~RUBY
