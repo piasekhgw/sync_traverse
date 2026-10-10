@@ -14,7 +14,7 @@ module SyncTraverse
       )
 
       def self.call(node:, server_context:)
-        with_input_validation(node_names: [node]) do
+        with_valid_format(node_names: [node]) do
           text_response(JSON.pretty_generate(get_node_code(node)))
         end
       end

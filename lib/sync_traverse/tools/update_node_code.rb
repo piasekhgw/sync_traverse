@@ -22,7 +22,7 @@ module SyncTraverse
         def call(node:, files:, server_context:)
           files = files.transform_keys(&:to_s)
 
-          with_input_validation(node_names: [node], file_names: files.keys) do
+          with_valid_format(node_names: [node], file_names: files.keys) do
             remaining_files = remaining_node_files(node, files)
             if remaining_files.empty?
               flows = flows_using_node(node)

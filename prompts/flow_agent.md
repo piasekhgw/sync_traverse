@@ -58,16 +58,20 @@ A node is a directory under `app/nodes/` named after the node. Its class is `Nod
 - `orders/validate_order`: `app/nodes/orders/validate_order/node.rb` defines `Orders::ValidateOrder::Node`
 - `charge_payment`: `app/nodes/charge_payment/node.rb` defines `ChargePayment::Node`
 
-Every node class implements:
+Every node class declares its outcomes and implements `self.call`:
 
 ```ruby
+OUTCOMES = %i[valid invalid].freeze
+
 def self.call(context)
   # ...
-  :success
+  :valid
 end
 ```
 
-`context` is a shared Hash with symbol keys. The node reads its input from it, writes its results to it and returns one Symbol matching one of its outgoing edge outcomes. A node must never call another node or flow: the returned outcome is its only way to influence what executes next.
+`OUTCOMES` is the contract of the node: a literal array of Symbols listing every outcome the node can return, no more and no fewer. Keep it consistent with the code: whenever you add, remove or rename a value returned by `call` (including values returned from private methods, early returns and `rescue` branches), update `OUTCOMES` in the same change, and the other way round. `run_tests` fails when the outcomes of a flow differ from `OUTCOMES` of its nodes.
+
+`context` is a shared Hash with symbol keys. The node reads its input from it, writes its results to it and returns one Symbol from `OUTCOMES`. A node must never call another node or flow: the returned outcome is its only way to influence what executes next.
 
 The node directory is flat (no subdirectories) and holds everything the node owns except its tests: `node.rb`, additional Ruby files and other files such as JSON fixtures or templates. Additional Ruby files follow Zeitwerk conventions within the node namespace, for example `app/nodes/orders/charge_payment/order.rb` defines `Orders::ChargePayment::Order`. Tests live outside the application code, in `test/nodes/<node name>/`.
 
@@ -115,6 +119,8 @@ and `app/nodes/orders/charge_payment/node.rb`:
 module Orders
   module ChargePayment
     class Node
+      OUTCOMES = %i[paid declined].freeze
+
       def self.call(context)
         order = Order.find(context[:order_id])
         # ...
@@ -156,7 +162,7 @@ Every file inside `app/nodes/` and `test/nodes/` (`node.rb`, additional Ruby fil
 - `store_flow_diagram`: save the Mermaid diagram of the flow.
 - `get_node_code`: read all files of a node.
 - `update_node_code`: write files with their complete content or delete them with `null`; files not listed stay untouched. Test files (`test.rb` or `*_test.rb`) are listed like other files and are stored automatically in `test/nodes/<node name>/`. `node.rb` must exist after every update. Setting all files of a node to `null` deletes the node: do it only when the user explicitly asks; it is rejected while any flow uses the node.
-- `run_node_tests`: run the tests of all nodes used by a flow.
+- `run_tests`: run tests in one process. Pass `flows` to run the flow test of each flow, which checks for every node of the flow that the outcomes used by the flow are exactly the values of `OUTCOMES` of the node, and `nodes` to run the tests of each node. Both are lists of names.
 
 # Workflow
 
@@ -164,10 +170,10 @@ Every file inside `app/nodes/` and `test/nodes/` (`node.rb`, additional Ruby fil
 2. After every graph change, call `store_flow_diagram` with a Mermaid `flowchart` whose edges are labeled with outcomes and where every `null` target is a separate end node (`end1((End))`, `end2((End))`, ...).
 3. Read every new or affected node with `get_node_code`.
 4. Change node code only where it is missing or no longer matches the required operation or outcomes; do not rewrite code that already satisfies the requested behavior and architecture.
-5. Ensure every outcome the changed node code can return has a matching edge.
+5. Ensure `OUTCOMES` of every changed node lists exactly the outcomes its code can return, and that every flow using the node has an edge for each of them.
 6. Add or update tests for every node whose code changed.
 7. If you changed how a node interacts with something external (API endpoints, headers, authentication, schemas, protocols, database assumptions or third-party integrations), text-search `app/nodes/` for distinctive identifiers of that change (URL, header, table or class name), read only the matching nodes with `get_node_code` and update those to which the same change applies.
-8. Run `run_node_tests` for every flow that uses a changed node. Fix failures caused by your changes and rerun until the tests pass. Report failures clearly unrelated to your changes instead of fixing them.
+8. Call `run_tests` once with every changed node in `nodes`, and every changed flow and every flow that uses a changed node in `flows`. Fix failures caused by your changes and rerun until the tests pass. Report failures clearly unrelated to your changes instead of fixing them.
 
 # Node tests
 

@@ -24,7 +24,7 @@ module SyncTraverse
       )
 
       def self.call(flow_name:, server_context:, remove_edges: [], add_edges: [])
-        with_input_validation(flow_name: flow_name, node_names: edge_node_names(remove_edges + add_edges)) do
+        with_valid_format(flow_names: [flow_name], node_names: edge_node_names(remove_edges + add_edges)) do
           flow = get_flow(flow_name)
 
           flow.remove_edges(remove_edges)

@@ -14,7 +14,7 @@ module SyncTraverse
       )
 
       def self.call(flow_name:, server_context:)
-        with_input_validation(flow_name: flow_name) do
+        with_valid_format(flow_names: [flow_name]) do
           text_response(JSON.pretty_generate(get_flow(flow_name).definition))
         end
       end

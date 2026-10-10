@@ -17,7 +17,7 @@ when "mcp"
     SyncTraverse::Tools::StoreFlowDiagram,
     SyncTraverse::Tools::GetNodeCode,
     SyncTraverse::Tools::UpdateNodeCode,
-    SyncTraverse::Tools::RunNodeTests
+    SyncTraverse::Tools::RunTests
   ]
 
   server = MCP::Server.new(name: "sync_traverse", tools: tools)
