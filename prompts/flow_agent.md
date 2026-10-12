@@ -98,9 +98,20 @@ An action may depend only on:
 - databases, other infrastructure, external APIs and services
 - code in its own directory
 
-An action must not use application-owned code outside its directory: global application models, services, interactors, commands, repositories, query objects, API clients, serializers, helpers, or code of other actions. If an action needs such code, write an action-local version in its directory. Duplication between actions is expected; never extract shared code to avoid it.
+An action must not use application-owned code outside its directory: global application models, services, interactors, commands, repositories, query objects, API clients, serializers, helpers, or code of other actions. If an action needs such code, write an action-local version in its directory.
 
-When refactoring legacy code into a flow, copy the required logic into the relevant actions instead of wrapping or delegating to it. Do not modify or remove the legacy code: the developer removes it deliberately.
+## Sharing and duplication
+
+Avoid duplication through meaningful shared actions, not through hidden shared implementation abstractions.
+
+- Helper code that belongs to an action (types, mappers, clients, private methods) stays local to that action, in its directory.
+- If duplicated logic is a meaningful, self-contained application operation, extract it into its own action and use that action in every flow that needs it. Reuse of behavior happens primarily through shared actions visible in the flow graph.
+- Never create shared services, helpers, repositories, base classes or modules only to remove duplication, and never let an action call another action or shared code directly.
+- If the common code does not represent a meaningful action that makes sense as a separate step in the graph, keep it local in each action. Duplication between actions is then acceptable.
+- Heuristic: if the operation makes sense as a separate step visible in the graph, it may be an action; if it is only an implementation detail, it stays local.
+- Before changing a shared action, find every flow that uses it (stable, draft and approved) and assess how the change affects the behavior of each of them.
+
+When refactoring legacy code into a flow, copy the required logic into the relevant actions instead of wrapping or delegating to it; when the same meaningful operation is needed in several places, make it one shared action. Do not modify or remove the legacy code: the developer removes it deliberately.
 
 Put action-specific types and helpers in separate files in the action directory, one class per file, instead of defining them inline in `action.rb`. Keep `action.rb` short: it holds `self.call(context)` and the private methods that run the operation, and refers to the other classes of its namespace. For example, `app/actions/orders/charge_payment/order.rb`:
 
@@ -200,7 +211,7 @@ Drafting changes only the graph; never change action code in this phase.
 
 If the implementation requires changing the graph, call `reopen_draft`, tell the developer why, and return to drafting: the flow is back in the draft phase, and a new approval and `approve_draft` are needed. Action code and tests are not reverted, so do not run tests of the stable flow at this point (it may legitimately not match the actions until promotion); after changing the graph and calling `approve_draft` again, continue from the already changed actions (read them with `get_action_code`) and run the tests as in step 7.
 
-Actions are shared by all flows and edited in place, so action code changed for the implementation is live before promotion: an action used by the stable flow may temporarily not match `stable.json` (for example a new result in `RESULTS`, or a removed one). Therefore change an existing action in a way that keeps working with its other flows, or say so to the developer, and run the flow tests of the other flows that use the action as well. The invariant that `stable.json` describes a working implementation holds when you finish a phase, not in the middle of the implementation.
+Actions are shared by all flows and edited in place, so action code changed for the implementation is live before promotion: an action used by the stable flow may temporarily not match `stable.json` (for example a new result in `RESULTS`, or a removed one). Therefore, before changing an existing action, find every flow that uses it and assess the impact on each of them; change it in a way that keeps working with its other flows, or say so to the developer, and run the flow tests of the other flows that use the action as well. The invariant that `stable.json` describes a working implementation holds when you finish a phase, not in the middle of the implementation.
 
 ## 3. Promotion
 
