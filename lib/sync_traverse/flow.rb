@@ -2,32 +2,32 @@ module SyncTraverse
   class Flow
     class ConflictError < StandardError; end
 
-    def initialize(graph = {})
-      @graph = graph
+    def initialize(definition = {})
+      @definition = definition
     end
 
     def to_h
-      graph
+      definition
     end
 
     def add_transitions(transitions)
       transitions.each do |transition|
         source, target, result = transition.values_at(:source, :target, :source_result)
-        if graph[source]&.key?(result) && graph[source][result] != target
+        if definition[source]&.key?(result) && definition[source][result] != target
           raise ConflictError,
-                "Result '#{result}' of action '#{source}' already targets '#{graph[source][result]}'; remove that transition first"
+                "Result '#{result}' of action '#{source}' already targets '#{definition[source][result]}'; remove that transition first"
         end
 
-        graph[source] ||= {}
-        graph[target] ||= {} unless target.nil?
-        graph[source][result] = target
+        definition[source] ||= {}
+        definition[target] ||= {} unless target.nil?
+        definition[source][result] = target
       end
     end
 
     def remove_transitions(transitions)
       transitions.each do |transition|
         source, target, result = transition.values_at(:source, :target, :source_result)
-        graph[source].delete(result)
+        definition[source].delete(result)
         remove_action_if_isolated(source)
         remove_action_if_isolated(target) unless target.nil?
       end
@@ -35,12 +35,12 @@ module SyncTraverse
 
     private
 
-    attr_reader :graph
+    attr_reader :definition
 
     def remove_action_if_isolated(action)
-      return if graph[action].any? || graph.each_value.any? { |targets| targets.value?(action) }
+      return if definition[action].any? || definition.each_value.any? { |targets| targets.value?(action) }
 
-      graph.delete(action)
+      definition.delete(action)
     end
   end
 end
