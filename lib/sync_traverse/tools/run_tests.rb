@@ -2,17 +2,17 @@ require "open3"
 
 module SyncTraverse
   module Tools
-    class RunTests < NodeCodeBase
+    class RunTests < ActionCodeBase
       TESTS_RUNNER = File.expand_path("../tests_runner.rb", __dir__)
 
       tool_name "run_tests"
-      description "Runs tests in one application process. For every given flow it runs the flow test, which checks for every node of the flow that the outcomes used by the flow are exactly the outcomes declared in the OUTCOMES constant of the node. For every given node it runs the Minitest tests of the node (test files in the test directory of the node)."
+      description "Runs tests in one application process. For every given flow it runs the flow test, which checks for every action of the flow that the results used by the flow are exactly the results declared in the RESULTS constant of the action. For every given action it runs the Minitest tests of the action (test files in the test directory of the action)."
       input_schema(
         properties: {
-          nodes: {
+          actions: {
             type: "array",
             items: { type: "string" },
-            description: "Names of the nodes whose tests to run. Each must be a relative path; may be namespaced with a path, for example 'orders/validate_order'."
+            description: "Names of the actions whose tests to run. Each must be a relative path; may be namespaced with a path, for example 'orders/validate_order'."
           },
           flows: {
             type: "array",
@@ -23,20 +23,20 @@ module SyncTraverse
       )
 
       class << self
-        def call(server_context:, nodes: [], flows: [])
-          nodes = nodes.uniq
+        def call(server_context:, actions: [], flows: [])
+          actions = actions.uniq
           flows = flows.uniq
 
-          with_valid_format(flow_names: flows, node_names: nodes) do
+          with_valid_format(flow_names: flows, action_names: actions) do
             missing_flows = flows.reject { |flow| File.exist?(current_flow_path(flow)) }
             return error_response("Flow not found: #{missing_flows.join(", ")}") if missing_flows.any?
 
-            test_files = nodes.to_h { |node| [node, node_test_files(node)] }
-            untested_nodes = test_files.select { |_, files| files.empty? }.keys
-            return error_response("No tests found for node: #{untested_nodes.join(", ")}") if untested_nodes.any?
+            test_files = actions.to_h { |action| [action, action_test_files(action)] }
+            untested_actions = test_files.select { |_, files| files.empty? }.keys
+            return error_response("No tests found for action: #{untested_actions.join(", ")}") if untested_actions.any?
 
             run(
-              nodes_dir: File.expand_path(nodes_dir),
+              actions_dir: File.expand_path(actions_dir),
               flows: flows.to_h { |flow| [flow, File.expand_path(current_flow_path(flow))] },
               test_files: test_files.values.flatten.map { |file| File.expand_path(file) }
             )
@@ -45,8 +45,8 @@ module SyncTraverse
 
         private
 
-        def node_test_files(node)
-          node_files(node).filter_map { |file| node_file_path(node, file) if test_file?(file) }
+        def action_test_files(action)
+          action_files(action).filter_map { |file| action_file_path(action, file) if test_file?(file) }
         end
 
         def run(options)

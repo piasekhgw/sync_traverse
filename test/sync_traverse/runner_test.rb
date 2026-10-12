@@ -2,7 +2,7 @@ require "test_helper"
 
 module SyncTraverse
   class RunnerTest < SyncTraverse::TestCase
-    def test_runs_flow_following_outcomes_until_terminal_node
+    def test_runs_flow_following_results_until_terminal_action
       write_flow_stable(
         "orders/purchase",
         {
@@ -10,10 +10,10 @@ module SyncTraverse
           "orders/charge_payment" => { "paid" => nil }
         }
       )
-      write_node_code("orders/validate_order", <<~RUBY)
+      write_action_code("orders/validate_order", <<~RUBY)
         module Orders
           module ValidateOrder
-            class Node
+            class Action
               def self.call(context)
                 context[:steps] << :validate_order
                 :valid
@@ -22,10 +22,10 @@ module SyncTraverse
           end
         end
       RUBY
-      write_node_code("orders/charge_payment", <<~RUBY)
+      write_action_code("orders/charge_payment", <<~RUBY)
         module Orders
           module ChargePayment
-            class Node
+            class Action
               def self.call(context)
                 context[:steps] << :charge_payment
                 :paid

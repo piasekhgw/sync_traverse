@@ -38,7 +38,7 @@ module SyncTraverse
 
         response = UpdateFlow.call(
           flow_name: "orders/purchase",
-          add_edges: [{ source: "a", target: nil, source_outcome: "other" }],
+          add_transitions: [{ source: "a", target: nil, source_result: "other" }],
           server_context: {}
         )
 

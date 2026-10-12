@@ -22,15 +22,15 @@ module SyncTraverse
     private
 
     def cleanup_dirs
-      [flows_dir, nodes_dir, tests_dir].each { |dir| FileUtils.rm_rf(dir) }
+      [flows_dir, actions_dir, tests_dir].each { |dir| FileUtils.rm_rf(dir) }
     end
 
     def flows_dir
       SyncTraverse.config.flows_dir
     end
 
-    def nodes_dir
-      SyncTraverse.config.nodes_dir
+    def actions_dir
+      SyncTraverse.config.actions_dir
     end
 
     def tests_dir
@@ -61,12 +61,12 @@ module SyncTraverse
       File.join(flows_dir, flow_name, "approved.mmd")
     end
 
-    def node_path(node_name, file_name = "node.rb")
-      File.join(nodes_dir, node_name, file_name)
+    def action_path(action_name, file_name = "action.rb")
+      File.join(actions_dir, action_name, file_name)
     end
 
-    def node_test_path(node_name, file_name = "test.rb")
-      File.join(tests_dir, node_name, file_name)
+    def action_test_path(action_name, file_name = "test.rb")
+      File.join(tests_dir, action_name, file_name)
     end
 
     def write_flow_stable(flow_name, graph)
@@ -81,16 +81,16 @@ module SyncTraverse
       write_code_file(flow_approved_path(flow_name), JSON.generate(graph))
     end
 
-    def write_node_file(node_name, code, file_name: "node.rb")
-      write_code_file(node_path(node_name, file_name), code)
+    def write_action_file(action_name, code, file_name: "action.rb")
+      write_code_file(action_path(action_name, file_name), code)
     end
 
-    def write_node_code(node_name, code)
-      load write_node_file(node_name, code)
+    def write_action_code(action_name, code)
+      load write_action_file(action_name, code)
     end
 
-    def write_node_test(node_name, code, file_name: "test.rb")
-      write_code_file(node_test_path(node_name, file_name), code)
+    def write_action_test(action_name, code, file_name: "test.rb")
+      write_code_file(action_test_path(action_name, file_name), code)
     end
 
     def write_code_file(path, code)

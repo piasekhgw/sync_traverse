@@ -29,20 +29,20 @@ module SyncTraverse
 
         response = UpdateFlow.call(
           flow_name: "orders/purchase",
-          add_edges: [{ source: "a", target: nil, source_outcome: "other" }],
+          add_transitions: [{ source: "a", target: nil, source_result: "other" }],
           server_context: {}
         )
 
         refute_predicate response, :error?
       end
 
-      def test_warns_that_node_code_was_not_reverted
+      def test_warns_that_action_code_was_not_reverted
         write_flow_approved("orders/purchase", { "a" => { "ok" => nil } })
 
         response = ReopenDraft.call(flow_name: "orders/purchase", server_context: {})
 
         assert_equal "Success. Flow orders/purchase is a draft again.", response.content.first[:text]
-        assert_match(/Node code and tests were not reverted/, response.content.last[:text])
+        assert_match(/Action code and tests were not reverted/, response.content.last[:text])
       end
 
       def test_rejects_flow_not_approved

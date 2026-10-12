@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class ApproveDraft < FlowBase
       tool_name "approve_draft"
-      description "Approves the flow draft by renaming draft.json to approved.json (and draft.mmd to approved.mmd). Call it only when the developer accepted the graph and asked for the implementation. Requires a valid draft. While approved.json exists update_flow is rejected; node code and tests are implemented against it. The stable flow (stable.json) is not changed."
+      description "Approves the flow draft by renaming draft.json to approved.json (and draft.mmd to approved.mmd). Call it only when the developer accepted the graph and asked for the implementation. Requires a valid draft. While approved.json exists update_flow is rejected; action code and tests are implemented against it. The stable flow (stable.json) is not changed."
       input_schema(
         properties: {
           flow_name: FLOW_NAME_SCHEMA

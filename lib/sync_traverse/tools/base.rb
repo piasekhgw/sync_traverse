@@ -83,8 +83,8 @@ module SyncTraverse
           MCP::Tool::Response.new([{ type: "text", text: message }], error: true)
         end
 
-        def with_valid_format(flow_names: [], node_names: [], file_names: [])
-          invalid_names = [*flow_names, *node_names].compact.uniq.grep_v(NAME_PATTERN)
+        def with_valid_format(flow_names: [], action_names: [], file_names: [])
+          invalid_names = [*flow_names, *action_names].compact.uniq.grep_v(NAME_PATTERN)
           return error_response("Invalid name(s): #{invalid_names.join(", ")}") if invalid_names.any?
 
           invalid_files = file_names.uniq.grep_v(FILE_PATTERN)

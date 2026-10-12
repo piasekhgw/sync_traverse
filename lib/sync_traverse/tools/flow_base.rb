@@ -1,14 +1,14 @@
 module SyncTraverse
   module Tools
     class FlowBase < Base
-      EDGE_SCHEMA = {
+      TRANSITION_SCHEMA = {
         type: "object",
         properties: {
-          source: { type: "string", description: "Source node name." },
-          target: { type: %w[string null], description: "Target node name, or null if this outcome ends the flow." },
-          source_outcome: { type: "string", description: "Outcome returned by the source node that selects this edge." }
+          source: { type: "string", description: "Source action name." },
+          target: { type: %w[string null], description: "Target action name, or null if this result ends the flow." },
+          source_result: { type: "string", description: "Result returned by the source action that selects this transition." }
         },
-        required: %w[source target source_outcome]
+        required: %w[source target source_result]
       }.freeze
 
       FLOW_NAME_SCHEMA = {
@@ -45,8 +45,8 @@ module SyncTraverse
           end
         end
 
-        def edge_node_names(edges)
-          edges.flat_map { |edge| edge.values_at(:source, :target) }
+        def transition_action_names(transitions)
+          transitions.flat_map { |transition| transition.values_at(:source, :target) }
         end
       end
     end

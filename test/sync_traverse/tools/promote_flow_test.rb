@@ -42,7 +42,7 @@ module SyncTraverse
         assert_equal "Phase: stable", response.content.last[:text]
       end
 
-      def test_deletes_flow_when_approved_flow_has_no_nodes
+      def test_deletes_flow_when_approved_flow_has_no_actions
         write_flow_stable("orders/purchase", { "a" => { "ok" => nil } })
         write_flow_approved("orders/purchase", {})
 

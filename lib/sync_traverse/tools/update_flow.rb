@@ -2,32 +2,32 @@ module SyncTraverse
   module Tools
     class UpdateFlow < FlowBase
       tool_name "update_flow"
-      description "Updates the flow draft in a single step: removes edges first, then adds edges. The first update creates the draft as a copy of the stable flow (stable.json), which is never changed by this tool; promote_flow replaces it later. Referenced nodes are added to the graph automatically (their code is managed separately with update_node_code); nodes that become isolated are removed from the graph automatically. A draft left without nodes means the flow is to be deleted on promotion; if the flow has no stable version, the draft is simply discarded. Rejected when the flow is approved: call reopen_draft first. Node code is never deleted automatically; a node that no flow (stable, draft or approved) uses anymore can be deleted explicitly with update_node_code, only when the user decides to."
+      description "Updates the flow draft in a single step: removes transitions first, then adds transitions. The first update creates the draft as a copy of the stable flow (stable.json), which is never changed by this tool; promote_flow replaces it later. Referenced actions are added to the graph automatically (their code is managed separately with update_action_code); actions that become isolated are removed from the graph automatically. A draft left without actions means the flow is to be deleted on promotion; if the flow has no stable version, the draft is simply discarded. Rejected when the flow is approved: call reopen_draft first. Action code is never deleted automatically; an action that no flow (stable, draft or approved) uses anymore can be deleted explicitly with update_action_code, only when the user decides to."
       input_schema(
         properties: {
           flow_name: FLOW_NAME_SCHEMA,
-          remove_edges: {
+          remove_transitions: {
             type: "array",
-            items: EDGE_SCHEMA,
-            description: "Edges to remove."
+            items: TRANSITION_SCHEMA,
+            description: "Transitions to remove."
           },
-          add_edges: {
+          add_transitions: {
             type: "array",
-            items: EDGE_SCHEMA,
-            description: "Edges to add, including terminal ones."
+            items: TRANSITION_SCHEMA,
+            description: "Transitions to add, including terminal ones."
           }
         },
         required: ["flow_name"]
       )
 
-      def self.call(flow_name:, server_context:, remove_edges: [], add_edges: [])
-        with_valid_format(flow_names: [flow_name], node_names: edge_node_names(remove_edges + add_edges)) do
+      def self.call(flow_name:, server_context:, remove_transitions: [], add_transitions: [])
+        with_valid_format(flow_names: [flow_name], action_names: transition_action_names(remove_transitions + add_transitions)) do
           return error_response("Flow #{flow_name} is approved; call reopen_draft to change the graph") if approved?(flow_name)
 
           flow = SyncTraverse::Flow.new(get_flow(flow_name))
 
-          flow.remove_edges(remove_edges)
-          flow.add_edges(add_edges)
+          flow.remove_transitions(remove_transitions)
+          flow.add_transitions(add_transitions)
 
           graph_errors = GraphValidator.new(flow.to_h).call
           return error_response(graph_errors.join("\n")) if graph_errors.any?
@@ -35,11 +35,11 @@ module SyncTraverse
           if flow.to_h.empty?
             unless stable?(flow_name)
               discard_draft_files(flow_name)
-              return text_response("Success. Flow has no nodes; there is nothing to draft.")
+              return text_response("Success. Flow has no actions; there is nothing to draft.")
             end
 
             save_flow(flow_name, flow)
-            return text_response("Success. Draft has no nodes left; promoting it deletes the flow.")
+            return text_response("Success. Draft has no actions left; promoting it deletes the flow.")
           end
 
           save_flow(flow_name, flow)

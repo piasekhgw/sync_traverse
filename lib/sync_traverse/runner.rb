@@ -12,15 +12,15 @@ module SyncTraverse
     end
 
     def call(context = {})
-      node_name = start_node(flow)
-      outcome = nil
+      action_name = start_action(flow)
+      result = nil
 
-      while node_name
-        outcome = run_node(node_name, context).to_s
-        node_name = flow.fetch(node_name).fetch(outcome)
+      while action_name
+        result = run_action(action_name, context).to_s
+        action_name = flow.fetch(action_name).fetch(result)
       end
 
-      outcome
+      result
     end
 
     private
@@ -31,17 +31,17 @@ module SyncTraverse
       JSON.parse(File.read(File.join(SyncTraverse.config.flows_dir, flow_name, "stable.json")))
     end
 
-    def start_node(flow)
+    def start_action(flow)
       targets = flow.values.flat_map(&:values)
-      flow.keys.detect { |node| !targets.include?(node) }
+      flow.keys.detect { |action| !targets.include?(action) }
     end
 
-    def run_node(node_name, context)
-      node_class(node_name).call(context)
+    def run_action(action_name, context)
+      action_class(action_name).call(context)
     end
 
-    def node_class(node_name)
-      "#{node_name}/node".camelize.constantize
+    def action_class(action_name)
+      "#{action_name}/action".camelize.constantize
     end
   end
 end

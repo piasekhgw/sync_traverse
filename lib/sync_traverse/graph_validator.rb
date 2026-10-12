@@ -10,7 +10,7 @@ module SyncTraverse
     def call
       return [] if flow.empty?
 
-      [acyclic_error, source_node_error].compact
+      [acyclic_error, source_action_error].compact
     end
 
     private
@@ -21,22 +21,22 @@ module SyncTraverse
       "Flow must be acyclic" unless graph.acyclic?
     end
 
-    def source_node_error
-      return if source_nodes.size == 1
+    def source_action_error
+      return if source_actions.size == 1
 
-      found = source_nodes.empty? ? "none" : source_nodes.join(", ")
-      "Flow must have exactly one source node, found: #{found}"
+      found = source_actions.empty? ? "none" : source_actions.join(", ")
+      "Flow must have exactly one source action, found: #{found}"
     end
 
-    def source_nodes
-      @source_nodes ||= graph.vertices.select { |vertex| graph.in_degree(vertex).zero? }
+    def source_actions
+      @source_actions ||= graph.vertices.select { |vertex| graph.in_degree(vertex).zero? }
     end
 
     def graph
       @graph ||= RGL::BidirectionalAdjacencyGraph.new.tap do |graph|
-        flow.each do |source, outcomes|
+        flow.each do |source, results|
           graph.add_vertex(source)
-          outcomes.each_value { |target| graph.add_edge(source, target) unless target.nil? }
+          results.each_value { |target| graph.add_edge(source, target) unless target.nil? }
         end
       end
     end

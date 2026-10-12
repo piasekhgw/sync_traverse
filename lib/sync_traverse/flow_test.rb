@@ -4,18 +4,18 @@ require "active_support/core_ext/string/inflections"
 
 module SyncTraverse
   # Flow test run in the application process (see Tools::RunTests).
-  # For every node of the flow it checks that the outcomes used by the flow are exactly the outcomes
-  # declared in the OUTCOMES constant of the node.
+  # For every action of the flow it checks that the results used by the flow are exactly the results
+  # declared in the RESULTS constant of the action.
   class FlowTest < Minitest::Test
-    def self.build(flow_name, flow_file_path, nodes_dir)
+    def self.build(flow_name, flow_file_path, actions_dir)
       graph = JSON.parse(File.read(flow_file_path))
 
       Class.new(self) do
         define_singleton_method(:name) { "FlowTest(#{flow_name})" }
 
-        graph.each do |node_name, edges|
-          define_method("test_#{node_name}_outcomes_match_node_outcomes") do
-            assert_outcomes_match(node_name, edges.keys, nodes_dir)
+        graph.each do |action_name, transitions|
+          define_method("test_#{action_name}_results_match_action_results") do
+            assert_results_match(action_name, transitions.keys, actions_dir)
           end
         end
       end
@@ -23,16 +23,16 @@ module SyncTraverse
 
     private
 
-    def assert_outcomes_match(node_name, flow_outcomes, nodes_dir)
-      require File.join(nodes_dir, node_name, "node")
-      node = "#{node_name}/node".camelize.constantize
+    def assert_results_match(action_name, flow_results, actions_dir)
+      require File.join(actions_dir, action_name, "action")
+      action = "#{action_name}/action".camelize.constantize
 
-      assert node.const_defined?(:OUTCOMES, false), "#{node} must define OUTCOMES"
+      assert action.const_defined?(:RESULTS, false), "#{action} must define RESULTS"
 
-      declared = node::OUTCOMES.map(&:to_s)
+      declared = action::RESULTS.map(&:to_s)
 
-      assert_empty flow_outcomes - declared, "Outcome(s) used by the flow but not declared in #{node}::OUTCOMES (#{declared.join(", ")})"
-      assert_empty declared - flow_outcomes, "Outcome(s) declared in #{node}::OUTCOMES but without an edge in the flow (#{flow_outcomes.join(", ")})"
+      assert_empty flow_results - declared, "Result(s) used by the flow but not declared in #{action}::RESULTS (#{declared.join(", ")})"
+      assert_empty declared - flow_results, "Result(s) declared in #{action}::RESULTS but without a transition in the flow (#{flow_results.join(", ")})"
     end
   end
 end

@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class PromoteFlow < FlowBase
       tool_name "promote_flow"
-      description "Promotes the approved flow to stable: atomically replaces stable.json and stable.mmd with approved.json and approved.mmd, which then no longer exist. An approved flow without nodes deletes the flow instead. Requires the approved phase. Call it only after the implementation is ready and run_tests passes; it does not run tests itself."
+      description "Promotes the approved flow to stable: atomically replaces stable.json and stable.mmd with approved.json and approved.mmd, which then no longer exist. An approved flow without actions deletes the flow instead. Requires the approved phase. Call it only after the implementation is ready and run_tests passes; it does not run tests itself."
       input_schema(
         properties: {
           flow_name: FLOW_NAME_SCHEMA
@@ -17,7 +17,7 @@ module SyncTraverse
 
             if get_flow(flow_name).empty?
               delete_flow(flow_name)
-              return text_response("Success. Approved flow has no nodes; flow #{flow_name} was deleted.")
+              return text_response("Success. Approved flow has no actions; flow #{flow_name} was deleted.")
             end
 
             promote_approved(flow_name)

@@ -19,8 +19,8 @@ when "mcp"
     SyncTraverse::Tools::ReopenDraft,
     SyncTraverse::Tools::DiscardDraft,
     SyncTraverse::Tools::PromoteFlow,
-    SyncTraverse::Tools::GetNodeCode,
-    SyncTraverse::Tools::UpdateNodeCode,
+    SyncTraverse::Tools::GetActionCode,
+    SyncTraverse::Tools::UpdateActionCode,
     SyncTraverse::Tools::RunTests
   ]
 

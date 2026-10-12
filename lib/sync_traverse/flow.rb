@@ -10,26 +10,26 @@ module SyncTraverse
       graph
     end
 
-    def add_edges(edges)
-      edges.each do |edge|
-        source, target, outcome = edge.values_at(:source, :target, :source_outcome)
-        if graph[source]&.key?(outcome) && graph[source][outcome] != target
+    def add_transitions(transitions)
+      transitions.each do |transition|
+        source, target, result = transition.values_at(:source, :target, :source_result)
+        if graph[source]&.key?(result) && graph[source][result] != target
           raise ConflictError,
-                "Outcome '#{outcome}' of node '#{source}' already targets '#{graph[source][outcome]}'; remove that edge first"
+                "Result '#{result}' of action '#{source}' already targets '#{graph[source][result]}'; remove that transition first"
         end
 
         graph[source] ||= {}
         graph[target] ||= {} unless target.nil?
-        graph[source][outcome] = target
+        graph[source][result] = target
       end
     end
 
-    def remove_edges(edges)
-      edges.each do |edge|
-        source, target, outcome = edge.values_at(:source, :target, :source_outcome)
-        graph[source].delete(outcome)
-        remove_node_if_isolated(source)
-        remove_node_if_isolated(target) unless target.nil?
+    def remove_transitions(transitions)
+      transitions.each do |transition|
+        source, target, result = transition.values_at(:source, :target, :source_result)
+        graph[source].delete(result)
+        remove_action_if_isolated(source)
+        remove_action_if_isolated(target) unless target.nil?
       end
     end
 
@@ -37,10 +37,10 @@ module SyncTraverse
 
     attr_reader :graph
 
-    def remove_node_if_isolated(node)
-      return if graph[node].any? || graph.each_value.any? { |targets| targets.value?(node) }
+    def remove_action_if_isolated(action)
+      return if graph[action].any? || graph.each_value.any? { |targets| targets.value?(action) }
 
-      graph.delete(node)
+      graph.delete(action)
     end
   end
 end
