@@ -18,8 +18,8 @@ module SyncTraverse
           File.rename(flow_approved_path(flow_name), flow_draft_path(flow_name))
           text_response(
             "Success. Flow #{flow_name} is a draft again.",
-            "Action code and tests were not reverted and may no longer match the stable flow until promote_flow. " \
-            "Change the graph with update_flow, call approve_draft again and run_tests for the flow."
+            "Action code and tests were not reverted and may no longer match the stable flow until promote_flows. " \
+            "Change the graph with update_flow, call approve_drafts again and run_tests for the flow."
           )
         end
       end

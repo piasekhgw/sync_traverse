@@ -14,6 +14,10 @@ module SyncTraverse
           SyncTraverse::Flow.new(File.exist?(path) ? JSON.parse(File.read(path)) : {}).to_h
         end
 
+        def get_flows(flow_names)
+          flow_names.to_h { |flow_name| [flow_name, get_flow(flow_name)] }
+        end
+
         def flow_stable_path(flow_name)
           File.join(flow_path(flow_name), "stable.json")
         end

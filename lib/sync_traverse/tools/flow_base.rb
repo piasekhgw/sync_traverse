@@ -16,6 +16,13 @@ module SyncTraverse
         description: "The flow name. Must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
       }.freeze
 
+      FLOW_NAMES_SCHEMA = {
+        type: "array",
+        items: FLOW_NAME_SCHEMA,
+        minItems: 1,
+        description: "The flow names, handled together in one all-or-nothing call."
+      }.freeze
+
       class << self
         private
 
@@ -42,6 +49,30 @@ module SyncTraverse
           while dir.start_with?("#{flows_dir}/") && Dir.exist?(dir) && Dir.empty?(dir)
             Dir.rmdir(dir)
             dir = File.dirname(dir)
+          end
+        end
+
+        def shared_results_conflicts(changed_flows)
+          flows = stable_flows.merge(changed_flows).sort.to_h
+          actions = changed_flows.values.flat_map(&:keys).uniq
+
+          actions.filter_map { |action| results_conflict(action, results_by_flow(flows, action)) }
+        end
+
+        def results_by_flow(flows, action)
+          flows.filter_map { |flow_name, flow| [flow_name, flow[action].keys.sort] if flow.key?(action) }.to_h
+        end
+
+        def results_conflict(action, results)
+          return if results.values.uniq.one?
+
+          listing = results.map { |flow_name, names| "#{flow_name} (#{names.join(", ")})" }.join(", ")
+          "Action #{action} has different results in flows #{listing}; keep them identical or use a new action"
+        end
+
+        def stable_flows
+          Dir.glob(File.join(flows_dir, "**", "stable.json")).to_h do |path|
+            [File.dirname(path).delete_prefix("#{flows_dir}/"), JSON.parse(File.read(path))]
           end
         end
 
