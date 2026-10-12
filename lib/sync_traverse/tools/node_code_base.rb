@@ -36,9 +36,9 @@ module SyncTraverse
         end
 
         def flows_using_node(node_name)
-          Dir.glob(File.join(flows_dir, "**", "definition.json")).filter_map do |path|
+          Dir.glob(File.join(flows_dir, "**", "{stable,draft,approved}.json")).filter_map do |path|
             File.dirname(path).delete_prefix("#{flows_dir}/") if JSON.parse(File.read(path)).key?(node_name)
-          end.sort
+          end.uniq.sort
         end
 
         def node_files(node_name)

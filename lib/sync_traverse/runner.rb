@@ -13,13 +13,14 @@ module SyncTraverse
 
     def call(context = {})
       node_name = start_node(flow)
+      outcome = nil
 
       while node_name
-        outcome = run_node(node_name, context)
-        node_name = flow.fetch(node_name).fetch(outcome.to_s)
+        outcome = run_node(node_name, context).to_s
+        node_name = flow.fetch(node_name).fetch(outcome)
       end
 
-      context
+      outcome
     end
 
     private
@@ -27,7 +28,7 @@ module SyncTraverse
     attr_reader :flow
 
     def load_flow(flow_name)
-      JSON.parse(File.read(File.join(SyncTraverse.config.flows_dir, flow_name, "definition.json")))
+      JSON.parse(File.read(File.join(SyncTraverse.config.flows_dir, flow_name, "stable.json")))
     end
 
     def start_node(flow)

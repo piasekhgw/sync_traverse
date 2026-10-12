@@ -15,6 +15,10 @@ when "mcp"
     SyncTraverse::Tools::GetFlow,
     SyncTraverse::Tools::UpdateFlow,
     SyncTraverse::Tools::StoreFlowDiagram,
+    SyncTraverse::Tools::ApproveDraft,
+    SyncTraverse::Tools::ReopenDraft,
+    SyncTraverse::Tools::DiscardDraft,
+    SyncTraverse::Tools::PromoteFlow,
     SyncTraverse::Tools::GetNodeCode,
     SyncTraverse::Tools::UpdateNodeCode,
     SyncTraverse::Tools::RunTests

@@ -3,19 +3,19 @@ require "rgl/topsort"
 
 module SyncTraverse
   class GraphValidator
-    def initialize(flow_definition)
-      @flow_definition = flow_definition
+    def initialize(flow)
+      @flow = flow
     end
 
     def call
-      return [] if flow_definition.empty?
+      return [] if flow.empty?
 
       [acyclic_error, source_node_error].compact
     end
 
     private
 
-    attr_reader :flow_definition
+    attr_reader :flow
 
     def acyclic_error
       "Flow must be acyclic" unless graph.acyclic?
@@ -34,7 +34,7 @@ module SyncTraverse
 
     def graph
       @graph ||= RGL::BidirectionalAdjacencyGraph.new.tap do |graph|
-        flow_definition.each do |source, outcomes|
+        flow.each do |source, outcomes|
           graph.add_vertex(source)
           outcomes.each_value { |target| graph.add_edge(source, target) unless target.nil? }
         end

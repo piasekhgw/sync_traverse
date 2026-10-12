@@ -2,20 +2,17 @@ module SyncTraverse
   module Tools
     class GetFlow < FlowBase
       tool_name "get_flow"
-      description "Returns the complete flow for the given flow_name. Call this before modifying an existing flow."
+      description "Returns the flow for the given flow_name as two text blocks: the flow graph as JSON and its phase. The approved flow is returned if it exists, else the draft, else the stable flow. Phase 'stable': no change in progress; the flow describes the working implementation. Phase 'draft': a change is being designed; update_flow changes it. Phase 'approved': the draft was approved with approve_draft; the graph is locked until reopen_draft or promote_flow. Call this before modifying a flow."
       input_schema(
         properties: {
-          flow_name: {
-            type: "string",
-            description: "The flow name. Must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
-          }
+          flow_name: FLOW_NAME_SCHEMA
         },
         required: ["flow_name"]
       )
 
       def self.call(flow_name:, server_context:)
         with_valid_format(flow_names: [flow_name]) do
-          text_response(JSON.pretty_generate(get_flow(flow_name).definition))
+          text_response(JSON.pretty_generate(get_flow(flow_name)), "Phase: #{flow_phase(flow_name)}")
         end
       end
     end

@@ -3,7 +3,7 @@ require "test_helper"
 module SyncTraverse
   class RunnerTest < SyncTraverse::TestCase
     def test_runs_flow_following_outcomes_until_terminal_node
-      write_flow_definition(
+      write_flow_stable(
         "orders/purchase",
         {
           "orders/validate_order" => { "valid" => "orders/charge_payment", "invalid" => nil },
@@ -35,8 +35,9 @@ module SyncTraverse
         end
       RUBY
 
-      context = Runner.call("orders/purchase", steps: [])
+      context = { steps: [] }
 
+      assert_equal "paid", Runner.call("orders/purchase", context)
       assert_equal %i[validate_order charge_payment], context[:steps]
     end
   end

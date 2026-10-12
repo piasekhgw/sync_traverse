@@ -114,8 +114,8 @@ module SyncTraverse
       end
 
       def test_rejects_deleting_node_used_by_a_flow
-        write_flow_definition("orders/purchase", { "orders/validate_order" => { "valid" => nil } })
-        write_flow_definition("orders/refund", { "orders/validate_order" => { "valid" => nil } })
+        write_flow_stable("orders/purchase", { "orders/validate_order" => { "valid" => nil } })
+        write_flow_stable("orders/refund", { "orders/validate_order" => { "valid" => nil } })
         write_node_code("orders/validate_order", "'code'")
 
         response = update("orders/validate_order", "node.rb" => nil)
@@ -123,6 +123,26 @@ module SyncTraverse
         assert_predicate response, :error?
         assert_equal "Cannot delete node orders/validate_order, it is used by flow(s): orders/purchase, orders/refund", response.content.first[:text]
         assert_path_exists node_path("orders/validate_order")
+      end
+
+      def test_rejects_deleting_node_used_only_by_a_flow_draft
+        write_flow_draft("orders/purchase", { "orders/validate_order" => { "valid" => nil } })
+        write_node_code("orders/validate_order", "'code'")
+
+        response = update("orders/validate_order", "node.rb" => nil)
+
+        assert_predicate response, :error?
+        assert_equal "Cannot delete node orders/validate_order, it is used by flow(s): orders/purchase", response.content.first[:text]
+      end
+
+      def test_rejects_deleting_node_used_only_by_an_approved_flow
+        write_flow_approved("orders/purchase", { "orders/validate_order" => { "valid" => nil } })
+        write_node_code("orders/validate_order", "'code'")
+
+        response = update("orders/validate_order", "node.rb" => nil)
+
+        assert_predicate response, :error?
+        assert_equal "Cannot delete node orders/validate_order, it is used by flow(s): orders/purchase", response.content.first[:text]
       end
 
       def test_cannot_write_outside_node_directory

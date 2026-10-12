@@ -7,13 +7,13 @@ module SyncTraverse
   # For every node of the flow it checks that the outcomes used by the flow are exactly the outcomes
   # declared in the OUTCOMES constant of the node.
   class FlowTest < Minitest::Test
-    def self.build(flow_name, definition_path, nodes_dir)
-      definition = JSON.parse(File.read(definition_path))
+    def self.build(flow_name, flow_file_path, nodes_dir)
+      graph = JSON.parse(File.read(flow_file_path))
 
       Class.new(self) do
         define_singleton_method(:name) { "FlowTest(#{flow_name})" }
 
-        definition.each do |node_name, edges|
+        graph.each do |node_name, edges|
           define_method("test_#{node_name}_outcomes_match_node_outcomes") do
             assert_outcomes_match(node_name, edges.keys, nodes_dir)
           end

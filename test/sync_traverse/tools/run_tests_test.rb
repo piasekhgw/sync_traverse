@@ -34,7 +34,7 @@ module SyncTraverse
       end
 
       def test_runs_flow_test_passing_when_outcomes_match_for_every_node
-        write_flow_definition(
+        write_flow_stable(
           "orders/purchase",
           { "validate_order" => { "valid" => "charge_payment", "invalid" => nil }, "charge_payment" => { "paid" => nil } }
         )
@@ -47,8 +47,30 @@ module SyncTraverse
         assert_match(/2 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
       end
 
+      def test_flow_test_uses_draft_instead_of_stable_flow
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_draft("orders/purchase", { "validate_order" => { "valid" => nil, "invalid" => nil } })
+        write_node("validate_order", %w[valid invalid])
+
+        response = run_tests(flows: ["orders/purchase"])
+
+        refute_predicate response, :error?
+        assert_match(/1 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
+      end
+
+      def test_flow_test_uses_approved_flow_instead_of_stable_flow
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_approved("orders/purchase", { "validate_order" => { "valid" => nil, "invalid" => nil } })
+        write_node("validate_order", %w[valid invalid])
+
+        response = run_tests(flows: ["orders/purchase"])
+
+        refute_predicate response, :error?
+        assert_match(/1 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
+      end
+
       def test_flow_test_does_not_run_node_tests_that_were_not_requested
-        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
         write_node("validate_order", %w[valid])
         write_node_test("validate_order", failing_test("ValidateOrderTest"))
 
@@ -59,7 +81,7 @@ module SyncTraverse
       end
 
       def test_fails_when_flow_uses_outcome_not_declared_by_node
-        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil, "invalid" => nil } })
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil, "invalid" => nil } })
         write_node("validate_order", %w[valid])
 
         response = run_tests(flows: ["orders/purchase"])
@@ -69,7 +91,7 @@ module SyncTraverse
       end
 
       def test_fails_when_node_declares_outcome_without_edge_in_flow
-        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
         write_node("validate_order", %w[valid invalid])
 
         response = run_tests(flows: ["orders/purchase"])
@@ -79,7 +101,7 @@ module SyncTraverse
       end
 
       def test_fails_when_node_does_not_declare_outcomes
-        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
         write_node_file("validate_order", "module ValidateOrder\n  class Node\n  end\nend\n")
 
         response = run_tests(flows: ["orders/purchase"])
@@ -89,7 +111,7 @@ module SyncTraverse
       end
 
       def test_fails_when_node_file_is_missing
-        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
 
         response = run_tests(flows: ["orders/purchase"])
 
@@ -119,7 +141,7 @@ module SyncTraverse
       end
 
       def test_runs_node_tests_and_flow_tests_together
-        write_flow_definition("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
         write_node("validate_order", %w[valid])
         write_node_test("validate_order", passing_test("ValidateOrderTest"))
 

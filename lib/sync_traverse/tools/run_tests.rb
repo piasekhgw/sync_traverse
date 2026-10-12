@@ -17,7 +17,7 @@ module SyncTraverse
           flows: {
             type: "array",
             items: { type: "string" },
-            description: "Names of the flows whose flow tests to run. Each must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
+            description: "Names of the flows whose flow tests to run. The approved flow is tested if it exists, else the draft, else the stable flow. Each must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
           }
         }
       )
@@ -28,7 +28,7 @@ module SyncTraverse
           flows = flows.uniq
 
           with_valid_format(flow_names: flows, node_names: nodes) do
-            missing_flows = flows.reject { |flow| File.exist?(flow_definition_path(flow)) }
+            missing_flows = flows.reject { |flow| File.exist?(current_flow_path(flow)) }
             return error_response("Flow not found: #{missing_flows.join(", ")}") if missing_flows.any?
 
             test_files = nodes.to_h { |node| [node, node_test_files(node)] }
@@ -37,7 +37,7 @@ module SyncTraverse
 
             run(
               nodes_dir: File.expand_path(nodes_dir),
-              flows: flows.to_h { |flow| [flow, File.expand_path(flow_definition_path(flow))] },
+              flows: flows.to_h { |flow| [flow, File.expand_path(current_flow_path(flow))] },
               test_files: test_files.values.flatten.map { |file| File.expand_path(file) }
             )
           end

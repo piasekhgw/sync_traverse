@@ -77,13 +77,14 @@ The node directory is flat (no subdirectories) and holds everything the node own
 
 # Invoking a flow
 
-Run a flow from the entrypoint with `SyncTraverse::Runner`. Pass the flow name and the initial `context` Hash. It returns the final `context`.
+Run a flow from the entrypoint with `SyncTraverse::Runner`. Pass the flow name and the `context` Hash. It returns the outcome (a String) of the last node, which tells the caller how the flow ended.
 
 ```ruby
-context = SyncTraverse::Runner.call("orders/purchase", order_id: params[:order_id])
+context = { order_id: params[:order_id] }
+outcome = SyncTraverse::Runner.call("orders/purchase", context)
 ```
 
-The caller reads results from the returned `context`.
+Nodes write their results into `context`, which the caller keeps a reference to and reads after the call.
 
 When creating a new flow, wire this call into the existing entrypoint unless the user says otherwise.
 
@@ -155,25 +156,57 @@ test/nodes/
 
 Change flows and node code only through `sync_traverse` tools. Use normal file-editing tools only to wire the flow into its entrypoint and for infrastructure or configuration explicitly required by the requested change, never to add application code outside nodes.
 
-Every file inside `app/nodes/` and `test/nodes/` (`node.rb`, additional Ruby files, tests such as `test.rb`, fixtures and any other file) must be created, changed or deleted exclusively with `update_node_code`, and every file inside `app/flows/` (`definition.json`, `diagram.mmd`) exclusively with `update_flow` and `store_flow_diagram`. Never edit them with file-editing tools or terminal commands, not even for a one-line fix or a test-only change. To change a node file, read the node with `get_node_code` and write the file back with `update_node_code`.
+Every file inside `app/nodes/` and `test/nodes/` (`node.rb`, additional Ruby files, tests such as `test.rb`, fixtures and any other file) must be created, changed or deleted exclusively with `update_node_code`, and every file inside `app/flows/` (`stable.json`, `draft.json`, `approved.json` and the matching `.mmd` diagrams) exclusively with the flow tools below. Never edit them with file-editing tools or terminal commands, not even for a one-line fix or a test-only change. To change a node file, read the node with `get_node_code` and write the file back with `update_node_code`.
 
-- `get_flow`: read the flow; call it before modifying an existing flow.
-- `update_flow`: change the graph. Pass all related removals and additions in one call; the operation is atomic and rejects invalid resulting flows. It adds referenced nodes to the graph, removes nodes left without edges and deletes the flow when no nodes remain. It never creates or deletes node code.
-- `store_flow_diagram`: save the Mermaid diagram of the flow.
+- `get_flow`: read the flow and its phase (`stable`, `draft` or `approved`); the flow of the current phase is returned (approved, else draft, else stable). Call it before modifying a flow.
+- `update_flow`: change the graph draft. Pass all related removals and additions in one call; the operation is atomic and rejects invalid resulting flows. The first call creates the draft as a copy of the stable flow; `stable.json` is never changed by it. It adds referenced nodes to the graph and removes nodes left without edges. A draft left without nodes means the flow will be deleted on promotion. It is rejected in the approved phase. It never creates or deletes node code.
+- `store_flow_diagram`: save the Mermaid diagram of the draft. Requires a draft; it is rejected in the approved phase.
+- `approve_draft`: approve the draft accepted by the developer (renames `draft.json` to `approved.json`); requires a valid draft and locks the graph (`update_flow` is rejected).
+- `reopen_draft`: return the approved flow to the draft phase (renames `approved.json` back to `draft.json`).
+- `discard_draft`: throw the draft or the approved flow away and return to the stable flow; use it only when the developer abandons the change.
+- `promote_flow`: atomically replace `stable.json` and `stable.mmd` with the approved flow and its diagram. It does not run tests.
 - `get_node_code`: read all files of a node.
-- `update_node_code`: write files with their complete content or delete them with `null`; files not listed stay untouched. Test files (`test.rb` or `*_test.rb`) are listed like other files and are stored automatically in `test/nodes/<node name>/`. `node.rb` must exist after every update. Setting all files of a node to `null` deletes the node: do it only when the user explicitly asks; it is rejected while any flow uses the node.
-- `run_tests`: run tests in one process. Pass `flows` to run the flow test of each flow, which checks for every node of the flow that the outcomes used by the flow are exactly the values of `OUTCOMES` of the node, and `nodes` to run the tests of each node. Both are lists of names.
+- `update_node_code`: write files with their complete content or delete them with `null`; files not listed stay untouched. Test files (`test.rb` or `*_test.rb`) are listed like other files and are stored automatically in `test/nodes/<node name>/`. `node.rb` must exist after every update. Setting all files of a node to `null` deletes the node: do it only when the user explicitly asks; it is rejected while any flow, draft or approved flow uses the node.
+- `run_tests`: run tests in one process. Pass `flows` to run the flow test of each flow (of its approved flow or draft if it has one), which checks for every node of the flow that the outcomes used by the flow are exactly the values of `OUTCOMES` of the node, and `nodes` to run the tests of each node. Both are lists of names.
 
 # Workflow
 
-1. If the graph changes, call `update_flow`. If the flow was deleted because no nodes remain, stop.
-2. After every graph change, call `store_flow_diagram` with a Mermaid `flowchart` whose edges are labeled with outcomes and where every `null` target is a separate end node (`end1((End))`, `end2((End))`, ...).
-3. Read every new or affected node with `get_node_code`.
-4. Change node code only where it is missing or no longer matches the required operation or outcomes; do not rewrite code that already satisfies the requested behavior and architecture.
-5. Ensure `OUTCOMES` of every changed node lists exactly the outcomes its code can return, and that every flow using the node has an edge for each of them.
-6. Add or update tests for every node whose code changed.
-7. If you changed how a node interacts with something external (API endpoints, headers, authentication, schemas, protocols, database assumptions or third-party integrations), text-search `app/nodes/` for distinctive identifiers of that change (URL, header, table or class name), read only the matching nodes with `get_node_code` and update those to which the same change applies.
-8. Call `run_tests` once with every changed node in `nodes`, and every changed flow and every flow that uses a changed node in `flows`. Fix failures caused by your changes and rerun until the tests pass. Report failures clearly unrelated to your changes instead of fixing them.
+Work on a flow goes through two stages, drafting and implementation, separated by the developer's approval of the graph. The state of a flow follows only from which files exist in its directory:
+
+- `stable.json` always describes the current working implementation; it is what `SyncTraverse::Runner` executes. Only this file exists when the flow is unchanged (phase `stable`).
+- `draft.json` is the editable proposal of a change (phase `draft`).
+- `approved.json` is the draft approved by the developer and being implemented (phase `approved`); the graph cannot change while it exists.
+
+`draft.json` and `approved.json` never exist at the same time. `get_flow` returns the flow of the current phase (approved, else draft, else stable) and reports the phase. Check the phase before acting and continue from it.
+
+## 1. Draft
+
+Drafting changes only the graph; never change node code in this phase.
+
+1. Call `get_flow`.
+2. Call `update_flow` for every graph change. The first call creates the draft from `stable.json`. If the flow has no nodes left in the draft, promoting it will delete the flow (node code is never deleted automatically).
+3. After every graph change, call `store_flow_diagram` with a Mermaid `flowchart` whose edges are labeled with outcomes and where every `null` target is a separate end node (`end1((End))`, `end2((End))`, ...).
+4. Present the graph to the developer and iterate on it until the developer approves it. Do not call `approve_draft` before the developer approved the graph and asked for the implementation. If the developer abandons the change, call `discard_draft`.
+
+## 2. Implementation
+
+1. Call `approve_draft`. From now on the graph is locked in `approved.json` and node code is implemented against it.
+2. Read every new or affected node with `get_node_code`.
+3. Change node code only where it is missing or no longer matches the required operation or outcomes; do not rewrite code that already satisfies the requested behavior and architecture.
+4. Ensure `OUTCOMES` of every changed node lists exactly the outcomes its code can return, and that every flow using the node has an edge for each of them.
+5. Add or update tests for every node whose code changed.
+6. If you changed how a node interacts with something external (API endpoints, headers, authentication, schemas, protocols, database assumptions or third-party integrations), text-search `app/nodes/` for distinctive identifiers of that change (URL, header, table or class name), read only the matching nodes with `get_node_code` and update those to which the same change applies.
+7. Call `run_tests` once with every changed node in `nodes`, and the flow being implemented and every other flow that uses a changed node in `flows`. Fix failures caused by your changes and rerun until the tests pass. Report failures clearly unrelated to your changes instead of fixing them.
+
+If the implementation requires changing the graph, call `reopen_draft`, tell the developer why, and return to drafting: the flow is back in the draft phase, and a new approval and `approve_draft` are needed. Node code and tests are not reverted, so do not run tests of the stable flow at this point (it may legitimately not match the nodes until promotion); after changing the graph and calling `approve_draft` again, continue from the already changed nodes (read them with `get_node_code`) and run the tests as in step 7.
+
+Nodes are shared by all flows and edited in place, so node code changed for the implementation is live before promotion: a node used by the stable flow may temporarily not match `stable.json` (for example a new outcome in `OUTCOMES`, or a removed one). Therefore change an existing node in a way that keeps working with its other flows, or say so to the developer, and run the flow tests of the other flows that use the node as well. The invariant that `stable.json` describes a working implementation holds when you finish a phase, not in the middle of the implementation.
+
+## 3. Promotion
+
+Call `promote_flow` only when the implementation is complete and `run_tests` passes for the flow. It replaces `stable.json` and `stable.mmd` with the approved flow (`approved.json` no longer exists afterwards). If the implementation or tests fail and cannot be fixed, do not promote: `stable.json` stays untouched; report it and either keep working, `reopen_draft` or `discard_draft` as the developer decides.
+
+If the developer abandons the change and you call `discard_draft`, the stable flow is current again but node code and tests are not reverted. If the flow still has a stable version, call `run_tests` for it and for other flows using the nodes you changed, then fix or revert the nodes that break them (node code is never deleted automatically).
 
 # Node tests
 
