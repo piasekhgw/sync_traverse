@@ -5,7 +5,7 @@ module SyncTraverse
     class PromoteFlowsTest < SyncTraverse::TestCase
       def test_replaces_stable_flow_with_approved_flow
         write_flow_stable("orders/purchase", { "a" => { "ok" => nil } })
-        write_flow_approved("orders/purchase", { "a" => { "ok" => "b" }, "b" => {} })
+        write_approved("orders/purchase", { "a" => { "ok" => "b" }, "b" => {} })
 
         response = PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
 
@@ -14,7 +14,7 @@ module SyncTraverse
       end
 
       def test_leaves_only_stable_flow
-        write_flow_approved("orders/purchase", { "a" => { "ok" => nil } })
+        write_approved("orders/purchase", { "a" => { "ok" => nil } })
 
         PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
 
@@ -23,7 +23,7 @@ module SyncTraverse
       end
 
       def test_replaces_diagram_with_approved_diagram
-        write_flow_approved("orders/purchase", { "a" => { "ok" => nil } })
+        write_approved("orders/purchase", { "a" => { "ok" => nil } })
         File.write(flow_stable_diagram_path("orders/purchase"), "old")
         File.write(flow_approved_diagram_path("orders/purchase"), "new")
 
@@ -34,7 +34,7 @@ module SyncTraverse
       end
 
       def test_makes_flow_stable_phase
-        write_flow_approved("orders/purchase", { "a" => { "ok" => nil } })
+        write_approved("orders/purchase", { "a" => { "ok" => nil } })
         PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
@@ -63,8 +63,8 @@ module SyncTraverse
       end
 
       def test_promotes_several_flows
-        write_flow_approved("billing/invoice", { "charge" => { "paid" => nil } })
-        write_flow_approved("orders/purchase", { "charge" => { "paid" => nil } })
+        write_approved("billing/invoice", { "charge" => { "paid" => nil } })
+        write_approved("orders/purchase", { "charge" => { "paid" => nil } })
 
         response = PromoteFlows.call(flow_names: ["billing/invoice", "orders/purchase"], server_context: {})
 
@@ -100,7 +100,7 @@ module SyncTraverse
 
       def test_does_not_compare_with_own_stable_flow
         write_flow_stable("orders/purchase", { "charge" => { "paid" => nil } })
-        write_flow_approved("orders/purchase", { "charge" => { "paid" => nil, "declined" => nil } })
+        write_approved("orders/purchase", { "charge" => { "paid" => nil, "declined" => nil } })
 
         response = PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
 
@@ -110,11 +110,86 @@ module SyncTraverse
       def test_deleted_flow_no_longer_counts_as_user_of_its_actions
         write_flow_stable("billing/invoice", { "charge" => { "paid" => nil } })
         write_flow_approved("billing/invoice", {})
-        write_flow_approved("orders/purchase", { "charge" => { "declined" => nil } })
+        write_approved("orders/purchase", { "charge" => { "declined" => nil } })
 
         response = PromoteFlows.call(flow_names: ["billing/invoice", "orders/purchase"], server_context: {})
 
         refute_predicate response, :error?
+      end
+
+      def test_promotes_nothing_when_flow_test_fails
+        write_flow_stable("orders/purchase", { "charge" => { "paid" => nil } })
+        write_flow_approved("orders/purchase", { "charge" => { "paid" => nil, "declined" => nil } })
+        write_action_with_results("charge", %w[paid])
+
+        response = PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
+
+        assert_predicate response, :error?
+        assert_match(/\ATests failed; nothing was promoted\.\n.*not declared in .*RESULTS/m, response.content.first[:text])
+        assert_path_exists flow_approved_path("orders/purchase")
+      end
+
+      def test_promotes_nothing_when_action_test_fails
+        write_approved("billing/invoice", { "charge" => { "paid" => nil } })
+        write_approved("orders/purchase", { "charge" => { "paid" => nil } })
+        write_action_test("charge", failing_test)
+
+        response = PromoteFlows.call(flow_names: ["billing/invoice", "orders/purchase"], server_context: {})
+
+        assert_predicate response, :error?
+        assert_match(/boom/, response.content.first[:text])
+        assert_empty Dir.glob(File.join(flows_dir, "**", "stable.json"))
+      end
+
+      def test_promotes_when_action_tests_pass
+        write_approved("orders/purchase", { "charge" => { "paid" => nil } })
+        write_action_test("charge", passing_test)
+
+        response = PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
+
+        refute_predicate response, :error?
+        assert_path_exists flow_stable_path("orders/purchase")
+      end
+
+      private
+
+      def write_approved(flow_name, graph)
+        write_flow_approved(flow_name, graph)
+        graph.each { |action_name, transitions| write_action_with_results(action_name, transitions.keys) }
+      end
+
+      def write_action_with_results(action_name, results)
+        write_action_file(action_name, <<~RUBY)
+          module #{action_name.capitalize}
+            class Action
+              RESULTS = %i[#{results.join(" ")}].freeze
+            end
+          end
+        RUBY
+      end
+
+      def passing_test
+        <<~RUBY
+          require "minitest/autorun"
+
+          class PromotePassingTest < Minitest::Test
+            def test_passes
+              assert true
+            end
+          end
+        RUBY
+      end
+
+      def failing_test
+        <<~RUBY
+          require "minitest/autorun"
+
+          class PromoteFailingTest < Minitest::Test
+            def test_fails
+              assert false, "boom"
+            end
+          end
+        RUBY
       end
     end
   end

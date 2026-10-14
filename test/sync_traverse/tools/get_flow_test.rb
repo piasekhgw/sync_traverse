@@ -8,6 +8,7 @@ module SyncTraverse
 
         refute_predicate response, :error?
         assert_equal({}, JSON.parse(response.content.first[:text]))
+        assert_equal "Phase: none", response.content.last[:text]
       end
 
       def test_returns_existing_flow

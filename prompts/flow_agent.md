@@ -170,7 +170,7 @@ Create, change and delete every file in `app/actions/` and `test/actions/` (code
 - `approve_drafts`: approve the drafts of the listed `flow_names` in one all-or-nothing call (`draft.json` becomes `approved.json`); requires a valid draft of every flow and locks their graphs. It is rejected when a shared action has different results in different flows: the drafts of the call are compared with each other and with the stable versions of all other flows.
 - `reopen_draft`: return the approved flow to the draft phase (`approved.json` becomes `draft.json` again).
 - `discard_draft`: throw the draft or the approved flow away and return to the stable flow; use it only when the developer abandons the change.
-- `promote_flows`: replace `stable.json` and `stable.mmd` with the approved flow and its diagram for every listed flow in one all-or-nothing call. It checks the results of shared actions like `approve_drafts` and does not run tests.
+- `promote_flows`: replace `stable.json` and `stable.mmd` with the approved flow and its diagram for every listed flow in one all-or-nothing call. It checks the results of shared actions like `approve_drafts`, then runs the flow tests of the flows and the tests of their actions, and promotes nothing if any of them fails.
 - `get_action_code`: read all files of an action.
 - `update_action_code`: write files with their complete content or delete them with `null`; files not listed stay untouched. Test files (`test.rb` or `*_test.rb`) are listed like other files and stored in `test/actions/<action name>/`. `action.rb` must exist after every update. Setting all files of an action to `null` deletes the action: do it only when the user explicitly asks; it is rejected while any stable, draft or approved flow uses the action. Action code is never deleted automatically.
 - `run_tests`: run tests in one process. `flows` runs the flow test of each listed flow (of its approved flow or draft if it has one), which checks that the results each action has in the flow are exactly its `RESULTS`; `actions` runs the tests of each listed action.
@@ -179,11 +179,12 @@ Create, change and delete every file in `app/actions/` and `test/actions/` (code
 
 Work on a flow goes through two stages, drafting and implementation, separated by the developer's approval of the graph. The state of a flow follows only from which files exist in its directory:
 
+- No file exists when the flow does not exist yet (phase `none`); the first `update_flow` creates `draft.json`.
 - `stable.json` always describes the current working implementation; it is what `SyncTraverse::Runner` executes. Only this file exists when the flow is unchanged (phase `stable`).
 - `draft.json` is the editable proposal of a change (phase `draft`).
 - `approved.json` is the draft approved by the developer and being implemented (phase `approved`); the graph cannot change while it exists.
 
-`draft.json` and `approved.json` never exist at the same time. `get_flow` returns the flow of the current phase (approved, else draft, else stable) and reports the phase. Check the phase before acting and continue from it.
+`draft.json` and `approved.json` never exist at the same time. `get_flow` returns the flow of the current phase (approved, else draft, else stable; an empty graph in phase `none`) and reports the phase. Check the phase before acting and continue from it.
 
 ## 1. Draft
 
@@ -192,7 +193,7 @@ Drafting changes only the graph; never change action code in this phase.
 1. Call `get_flow`.
 2. Call `update_flow` for every graph change.
 3. After every graph change, call `store_flow_diagram` with a Mermaid `flowchart` whose transitions are labeled with results and where every `null` target is a separate end action (`end1((End))`, `end2((End))`, ...).
-4. Present the graph to the developer and iterate on it until the developer approves it. Do not call `approve_drafts` before the developer approved the graph and asked for the implementation. If the developer abandons the change, call `discard_draft`.
+4. Present the graph to the developer and stop. A request to create or change a flow is not an approval of the graph: approval is a separate developer message after the graph was presented. Iterate on the graph until the developer approves it and asks for the implementation; only then call `approve_drafts`. If the developer abandons the change, call `discard_draft`.
 
 ## 2. Implementation
 
@@ -210,7 +211,7 @@ Actions are edited in place, so changed action code is live before promotion: an
 
 ## 3. Promotion
 
-Call `promote_flows` with the flows approved together only when the implementation is complete and `run_tests` passes for them. If the implementation or tests fail and cannot be fixed, do not promote; report it and either keep working, `reopen_draft` or `discard_draft` as the developer decides.
+Call `promote_flows` with the flows approved together when the implementation is complete; it runs the tests and rejects the promotion if they fail. If the implementation or tests fail and cannot be fixed, do not promote; report it and either keep working, `reopen_draft` or `discard_draft` as the developer decides.
 
 If the developer abandons the change and you call `discard_draft`, action code and tests are not reverted. If the flow still has a stable version, call `run_tests` for it and for other flows using the actions you changed, then fix or revert the actions that break them.
 

@@ -62,8 +62,9 @@ module SyncTraverse
 
         def flow_phase(flow_name)
           return "approved" if approved?(flow_name)
+          return "draft" if draft?(flow_name)
 
-          draft?(flow_name) ? "draft" : "stable"
+          stable?(flow_name) ? "stable" : "none"
         end
 
         def flows_dir

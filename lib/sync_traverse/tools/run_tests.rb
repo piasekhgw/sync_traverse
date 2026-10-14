@@ -43,6 +43,10 @@ module SyncTraverse
           end
         end
 
+        def actions_with_tests(action_names)
+          action_names.reject { |action| action_test_files(action).empty? }
+        end
+
         private
 
         def action_test_files(action)
