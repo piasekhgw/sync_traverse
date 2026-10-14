@@ -192,7 +192,7 @@ Drafting changes only the graph; never change action code in this phase.
 
 1. Call `get_flow`.
 2. Call `update_flow` for every graph change.
-3. After every graph change, call `store_flow_diagram` with a Mermaid `flowchart` whose transitions are labeled with results and where every `null` target is a separate end action (`end1((End))`, `end2((End))`, ...).
+3. After every graph change, call `store_flow_diagram` with a Mermaid `flowchart` whose transitions are labeled with results and where every `null` target is a separate end action (`end1((End))`, `end2((End))`, ...). Use the full action name, including the namespace and `/` if present, as both the node id and its label; never shorten it and never replace `/` (`orders/load_order[orders/load_order] -->|found| orders/validate_order[orders/validate_order]`).
 4. Present the graph to the developer and stop. A request to create or change a flow is not an approval of the graph: approval is a separate developer message after the graph was presented. Iterate on the graph until the developer approves it and asks for the implementation; only then call `approve_drafts`. If the developer abandons the change, call `discard_draft`.
 
 This also applies to a flow that is already implemented: a request to change it (for example to merge two actions into one) only starts a draft. Call `update_flow` and `store_flow_diagram`, present the changed graph, ask the developer to approve it and end your turn. Never call `approve_drafts` in the same turn as `update_flow`, and never change action code before the graph is approved.
