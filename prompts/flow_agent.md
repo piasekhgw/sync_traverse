@@ -108,7 +108,7 @@ Avoid duplication through meaningful shared actions, not through hidden shared i
 
 When refactoring legacy code into a flow, copy the required logic into the relevant actions instead of wrapping or delegating to it. Do not modify or remove the legacy code: the developer removes it deliberately.
 
-Put action-specific types and helpers in separate files in the action directory, one class per file, instead of defining them inline in `action.rb`. Keep `action.rb` short: it holds `self.call(context)` and the private methods that run the operation, and refers to the other classes of its namespace. For example, `app/actions/orders/charge_payment/order.rb`:
+Put action-specific types and helpers in separate files in the action directory, one class per file, instead of defining them inline in `action.rb`. Keep `action.rb` short: it holds `self.call(context)` and the private methods that run the operation, and refers to the other classes of its namespace by their short names (`Order`, `StripeClient`), never by fully qualified names (`Orders::ChargePayment::Order`). For example, `app/actions/orders/charge_payment/order.rb`:
 
 ```ruby
 module Orders
