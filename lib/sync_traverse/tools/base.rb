@@ -12,7 +12,7 @@ module SyncTraverse
 
         def get_flow(flow_name)
           path = current_flow_path(flow_name)
-          SyncTraverse::Flow.new(File.exist?(path) ? JSON.parse(File.read(path)) : {}).to_h
+          SyncTraverse::Flow.new(File.exist?(path) ? JSON.parse(read_file(path)) : {}).to_h
         end
 
         def get_flows(flow_names)
@@ -70,6 +70,11 @@ module SyncTraverse
 
         def flow_path(flow_name)
           File.join(flows_dir, flow_name)
+        end
+
+        # Files are always UTF-8, regardless of the locale the server process was started with.
+        def read_file(path)
+          File.read(path, encoding: Encoding::UTF_8)
         end
 
         def write_file(path, content)

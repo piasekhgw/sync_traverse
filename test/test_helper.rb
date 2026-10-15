@@ -105,6 +105,14 @@ module SyncTraverse
       write_code_file(flow_test_path(flow_name, file_name), code)
     end
 
+    def with_default_external(encoding)
+      original = Encoding.default_external
+      Encoding.default_external = encoding
+      yield
+    ensure
+      Encoding.default_external = original
+    end
+
     def write_code_file(path, code)
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, code)

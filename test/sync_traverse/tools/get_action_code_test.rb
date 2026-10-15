@@ -19,6 +19,17 @@ module SyncTraverse
         assert_equal({ "action.rb" => "module Orders\nend\n" }, JSON.parse(response.content.first[:text]))
       end
 
+      def test_returns_utf8_code_when_server_locale_is_not_utf8
+        write_action_code("orders/validate_order", "# Zamówienie musi być zapłacone\n")
+
+        response = with_default_external(Encoding::US_ASCII) do
+          GetActionCode.call(action: "orders/validate_order", server_context: {})
+        end
+
+        refute_predicate response, :error?
+        assert_equal({ "action.rb" => "# Zamówienie musi być zapłacone\n" }, JSON.parse(response.content.first[:text]))
+      end
+
       def test_returns_local_files_and_tests_of_action
         write_action_code("orders/validate_order", "'action'")
         write_action_file("orders/validate_order", "'local'", file_name: "order.rb")

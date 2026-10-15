@@ -51,6 +51,18 @@ module SyncTraverse
         assert_equal({ "paths_test.rb" => "'paths'", "test.rb" => "'test'" }, flow_json(response)["flow_tests"])
       end
 
+      def test_returns_utf8_flow_tests_when_server_locale_is_not_utf8
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_test("orders/purchase", "# Zamówienie musi być zapłacone\n")
+
+        response = with_default_external(Encoding::US_ASCII) do
+          GetFlow.call(flow_name: "orders/purchase", server_context: {})
+        end
+
+        refute_predicate response, :error?
+        assert_equal({ "test.rb" => "# Zamówienie musi być zapłacone\n" }, flow_json(response)["flow_tests"])
+      end
+
       def test_returns_empty_flow_tests_without_tests
         write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
 

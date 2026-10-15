@@ -12,7 +12,7 @@ module SyncTraverse
 
       def self.call(flow_name:, server_context:)
         with_valid_format(flow_names: [flow_name]) do
-          flow_tests = flow_test_files(flow_name).to_h { |file| [file, File.read(flow_test_path(flow_name, file))] }
+          flow_tests = flow_test_files(flow_name).to_h { |file| [file, read_file(flow_test_path(flow_name, file))] }
 
           text_response(JSON.pretty_generate(phase: flow_phase(flow_name), graph: get_flow(flow_name), flow_tests: flow_tests))
         end

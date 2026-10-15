@@ -74,7 +74,7 @@ module SyncTraverse
 
         def stable_flows
           Dir.glob(File.join(flows_dir, "**", "stable.json")).to_h do |path|
-            [File.dirname(path).delete_prefix("#{flows_dir}/"), JSON.parse(File.read(path))]
+            [File.dirname(path).delete_prefix("#{flows_dir}/"), JSON.parse(read_file(path))]
           end
         end
 

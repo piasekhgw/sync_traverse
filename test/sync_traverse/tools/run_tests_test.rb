@@ -221,14 +221,6 @@ module SyncTraverse
         RunTests.call(actions: actions, flows: flows, server_context: {})
       end
 
-      def with_default_external(encoding)
-        original = Encoding.default_external
-        Encoding.default_external = encoding
-        yield
-      ensure
-        Encoding.default_external = original
-      end
-
       def write_action(action_name, results)
         namespace = action_name.split("_").map(&:capitalize).join
         write_action_file(action_name, <<~RUBY)

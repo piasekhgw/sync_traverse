@@ -7,7 +7,7 @@ module SyncTraverse
         private
 
         def get_action_code(action_name)
-          action_files(action_name).to_h { |file| [file, File.read(action_file_path(action_name, file))] }
+          action_files(action_name).to_h { |file| [file, read_file(action_file_path(action_name, file))] }
         end
 
         def update_action_files(action_name, files)
@@ -26,7 +26,7 @@ module SyncTraverse
 
         def flows_using_action(action_name)
           Dir.glob(File.join(flows_dir, "**", "{stable,draft,approved}.json")).filter_map do |path|
-            File.dirname(path).delete_prefix("#{flows_dir}/") if JSON.parse(File.read(path)).key?(action_name)
+            File.dirname(path).delete_prefix("#{flows_dir}/") if JSON.parse(read_file(path)).key?(action_name)
           end.uniq.sort
         end
 
