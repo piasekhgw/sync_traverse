@@ -69,6 +69,8 @@ def self.call(context)
 end
 ```
 
+An action is a stateless class-level entrypoint. Never define `initialize(context)`, instance variables or instance methods as the action API; the runner invokes `Action.call(context)`, and the action reads and writes the shared `context` hash directly. `self.call` is the only public method that matters to the flow.
+
 `RESULTS` is the contract of the action: a literal array of Symbols listing every result the action can return, no more and no fewer. Keep it consistent with the code: whenever you add, remove or rename a value returned by `call` (including values returned from private methods, early returns and `rescue` branches), update `RESULTS` in the same change, and the other way round. Actions are shared, so `RESULTS` is one contract for every flow that uses the action.
 
 `context` is a shared Hash with symbol keys. The action reads its input from it, writes its output to it and returns one Symbol from `RESULTS`. An action must never call another action or flow: the returned result is its only way to influence what executes next.
