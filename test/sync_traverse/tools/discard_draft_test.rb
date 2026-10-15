@@ -35,6 +35,25 @@ module SyncTraverse
         refute File.directory?(File.join(flows_dir, "orders"))
       end
 
+      def test_removes_flow_tests_when_there_is_no_stable_flow
+        write_flow_draft("orders/purchase", { "a" => { "ok" => nil } })
+        write_flow_test("orders/purchase", "'test'")
+
+        DiscardDraft.call(flow_name: "orders/purchase", server_context: {})
+
+        refute File.directory?(File.join(flow_tests_dir, "orders"))
+      end
+
+      def test_keeps_flow_tests_when_stable_flow_exists
+        write_flow_stable("orders/purchase", { "a" => { "ok" => nil } })
+        write_flow_draft("orders/purchase", { "a" => { "ok" => "b" }, "b" => {} })
+        write_flow_test("orders/purchase", "'test'")
+
+        DiscardDraft.call(flow_name: "orders/purchase", server_context: {})
+
+        assert_path_exists flow_test_path("orders/purchase")
+      end
+
       def test_keeps_namespace_directory_with_other_flows
         write_flow_draft("orders/purchase", { "a" => { "ok" => nil } })
         write_flow_stable("orders/refund", { "b" => { "ok" => nil } })

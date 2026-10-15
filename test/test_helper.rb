@@ -22,7 +22,7 @@ module SyncTraverse
     private
 
     def cleanup_dirs
-      [flows_dir, actions_dir, tests_dir].each { |dir| FileUtils.rm_rf(dir) }
+      [flows_dir, actions_dir, action_tests_dir, flow_tests_dir].each { |dir| FileUtils.rm_rf(dir) }
     end
 
     def flows_dir
@@ -33,8 +33,12 @@ module SyncTraverse
       SyncTraverse.config.actions_dir
     end
 
-    def tests_dir
-      SyncTraverse.config.tests_dir
+    def action_tests_dir
+      SyncTraverse.config.action_tests_dir
+    end
+
+    def flow_tests_dir
+      SyncTraverse.config.flow_tests_dir
     end
 
     def flow_stable_path(flow_name)
@@ -66,7 +70,7 @@ module SyncTraverse
     end
 
     def action_test_path(action_name, file_name = "test.rb")
-      File.join(tests_dir, action_name, file_name)
+      File.join(action_tests_dir, action_name, file_name)
     end
 
     def write_flow_stable(flow_name, graph)
@@ -91,6 +95,14 @@ module SyncTraverse
 
     def write_action_test(action_name, code, file_name: "test.rb")
       write_code_file(action_test_path(action_name, file_name), code)
+    end
+
+    def flow_test_path(flow_name, file_name = "test.rb")
+      File.join(flow_tests_dir, flow_name, file_name)
+    end
+
+    def write_flow_test(flow_name, code, file_name: "test.rb")
+      write_code_file(flow_test_path(flow_name, file_name), code)
     end
 
     def write_code_file(path, code)

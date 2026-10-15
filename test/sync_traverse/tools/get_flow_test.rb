@@ -7,8 +7,7 @@ module SyncTraverse
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
         refute_predicate response, :error?
-        assert_equal({}, JSON.parse(response.content.first[:text]))
-        assert_equal "Phase: none", response.content.last[:text]
+        assert_equal({ "phase" => "none", "graph" => {}, "flow_tests" => {} }, flow_json(response))
       end
 
       def test_returns_existing_flow
@@ -17,8 +16,8 @@ module SyncTraverse
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
         refute_predicate response, :error?
-        assert_equal({ "validate_order" => { "valid" => nil } }, JSON.parse(response.content.first[:text]))
-        assert_equal "Phase: stable", response.content.last[:text]
+        assert_equal({ "validate_order" => { "valid" => nil } }, flow_json(response)["graph"])
+        assert_equal "stable", flow_json(response)["phase"]
       end
 
       def test_returns_draft_in_draft_phase
@@ -27,8 +26,8 @@ module SyncTraverse
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
-        assert_equal "charge_payment", JSON.parse(response.content.first[:text])["validate_order"]["valid"]
-        assert_equal "Phase: draft", response.content.last[:text]
+        assert_equal "charge_payment", flow_json(response)["graph"]["validate_order"]["valid"]
+        assert_equal "draft", flow_json(response)["phase"]
       end
 
       def test_returns_approved_flow_in_approved_phase
@@ -37,8 +36,27 @@ module SyncTraverse
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
-        assert_equal({ "validate_order" => { "valid" => nil } }, JSON.parse(response.content.first[:text]))
-        assert_equal "Phase: approved", response.content.last[:text]
+        assert_equal({ "validate_order" => { "valid" => nil } }, flow_json(response)["graph"])
+        assert_equal "approved", flow_json(response)["phase"]
+      end
+
+      def test_returns_flow_tests_of_the_flow
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_test("orders/purchase", "'test'")
+        write_flow_test("orders/purchase", "'paths'", file_name: "paths_test.rb")
+        write_flow_test("orders/refund", "'other'")
+
+        response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
+
+        assert_equal({ "paths_test.rb" => "'paths'", "test.rb" => "'test'" }, flow_json(response)["flow_tests"])
+      end
+
+      def test_returns_empty_flow_tests_without_tests
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+
+        response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
+
+        assert_equal({}, flow_json(response)["flow_tests"])
       end
 
       def test_rejects_invalid_flow_name
@@ -46,6 +64,12 @@ module SyncTraverse
 
         assert_predicate response, :error?
         assert_equal "Invalid name(s): ../escape", response.content.first[:text]
+      end
+
+      private
+
+      def flow_json(response)
+        JSON.parse(response.content.first[:text])
       end
     end
   end

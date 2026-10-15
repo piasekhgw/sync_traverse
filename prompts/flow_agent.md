@@ -162,18 +162,19 @@ test/actions/
 
 Change flows and action code only through `sync_traverse` tools. Use normal file-editing tools only to wire the flow into its entrypoint and for infrastructure or configuration explicitly required by the requested change, never to add application code outside actions.
 
-Create, change and delete every file in `app/actions/` and `test/actions/` (code, tests, fixtures and any other file) only with `update_action_code`, and every file in `app/flows/` only with the flow tools below; never with file-editing tools or terminal commands, not even for a one-line fix. To change an action file, read the action with `get_action_code` and write the file back with `update_action_code`.
+Create, change and delete every file in `app/actions/` and `test/actions/` (code, tests, fixtures and any other file) only with `update_action_code`, every file in `test/flows/` only with `update_flow_tests`, and every file in `app/flows/` only with the flow tools below; never with file-editing tools or terminal commands, not even for a one-line fix. To change an action file, read the action with `get_action_code` and write the file back with `update_action_code`.
 
-- `get_flow`: read the flow of the current phase and the phase (see Workflow). Call it before modifying a flow.
+- `get_flow`: read, as one JSON object, the phase, the graph of the flow of the current phase and its flow tests (see Workflow). Call it before modifying a flow or its flow tests.
 - `update_flow`: change the draft graph. Pass all related removals and additions in one call; the operation is atomic and rejects invalid resulting flows. The first call creates the draft as a copy of `stable.json`, which it never changes. It adds referenced actions to the graph and removes actions left without transitions; a draft without actions deletes the flow on promotion. It never creates or deletes action code and is rejected in the approved phase.
+- `update_flow_tests`: write flow test files (see Flow tests) of an existing flow with their complete content or delete them with `null`; files not listed stay untouched. Files are named `test.rb` or end with `_test.rb` and are stored in `test/flows/<flow name>/`. Allowed in every phase; the tests are deleted only together with the flow.
 - `store_flow_diagram`: save the Mermaid diagram of the draft; rejected in the approved phase.
 - `approve_drafts`: approve the drafts of the listed `flow_names` in one all-or-nothing call (`draft.json` becomes `approved.json`); requires a valid draft of every flow and locks their graphs. It is rejected when a shared action has different results in different flows: the drafts of the call are compared with each other and with the stable versions of all other flows.
 - `reopen_draft`: return the approved flow to the draft phase (`approved.json` becomes `draft.json` again).
 - `discard_draft`: throw the draft or the approved flow away and return to the stable flow; use it only when the developer abandons the change.
-- `promote_flows`: replace `stable.json` and `stable.mmd` with the approved flow and its diagram for every listed flow in one all-or-nothing call. It checks the results of shared actions like `approve_drafts`, then runs the flow tests of the flows and the tests of their actions, and promotes nothing if any of them fails.
+- `promote_flows`: replace `stable.json` and `stable.mmd` with the approved flow and its diagram for every listed flow in one all-or-nothing call. It checks the results of shared actions like `approve_drafts`, then runs the results checks and flow tests of the flows and the tests of their actions, and promotes nothing if any of them fails.
 - `get_action_code`: read all files of an action.
 - `update_action_code`: write files with their complete content or delete them with `null`; files not listed stay untouched. Test files (`test.rb` or `*_test.rb`) are listed like other files and stored in `test/actions/<action name>/`. `action.rb` must exist after every update. Setting all files of an action to `null` deletes the action: do it only when the user explicitly asks; it is rejected while any stable, draft or approved flow uses the action. Action code is never deleted automatically.
-- `run_tests`: run tests in one process. `flows` runs the flow test of each listed flow (of its approved flow or draft if it has one), which checks that the results each action has in the flow are exactly its `RESULTS`; `actions` runs the tests of each listed action.
+- `run_tests`: run tests in one process. `flows` runs, for each listed flow, the results check, which checks that the results each action has in the flow are exactly its `RESULTS`, and the flow tests of the flow; both use its approved flow or draft if it has one. `actions` runs the tests of each listed action.
 
 # Workflow
 
@@ -184,7 +185,7 @@ Work on a flow goes through two stages, drafting and implementation, separated b
 - `draft.json` is the editable proposal of a change (phase `draft`).
 - `approved.json` is the draft approved by the developer and being implemented (phase `approved`); the graph cannot change while it exists.
 
-`draft.json` and `approved.json` never exist at the same time. `get_flow` returns the flow of the current phase (approved, else draft, else stable; an empty graph in phase `none`) and reports the phase. Check the phase before acting and continue from it.
+`draft.json` and `approved.json` never exist at the same time. `get_flow` returns the phase and the flow of the current phase (approved, else draft, else stable; an empty graph in phase `none`). Check the phase before acting and continue from it.
 
 ## 1. Draft
 
@@ -204,10 +205,11 @@ This also applies to a flow that is already implemented: a request to change it 
 3. Change action code only where it is missing or no longer matches the required operation or results, or where the developer asks for a change; do not rewrite code that already satisfies the requested behavior and architecture.
 4. Ensure `RESULTS` of every changed action lists exactly the results its code can return, and that every flow using the action has a transition for each of them.
 5. Add or update tests for every action whose code changed.
-6. If you changed how an action interacts with something external (API endpoints, headers, authentication, schemas, protocols, database assumptions or third-party integrations), text-search `app/actions/` for distinctive identifiers of that change (URL, header, table or class name) and tell the developer which other actions may need the same change. Do not change them unless the developer asks.
-7. Call `run_tests` once with every changed action in `actions`, and the flow being implemented and every other flow that uses a changed action in `flows`. Fix failures caused by your changes and rerun until the tests pass. Report failures clearly unrelated to your changes instead of fixing them.
+6. Add or update the flow tests of the flow being implemented with `update_flow_tests`, so that they cover its paths in the approved graph. When a changed action reads or writes different `context` keys or values than before, update the flow tests of every other flow that uses it as well.
+7. If you changed how an action interacts with something external (API endpoints, headers, authentication, schemas, protocols, database assumptions or third-party integrations), text-search `app/actions/` for distinctive identifiers of that change (URL, header, table or class name) and tell the developer which other actions may need the same change. Do not change them unless the developer asks.
+8. Call `run_tests` once with every changed action in `actions`, and the flow being implemented and every other flow that uses a changed action in `flows`. Fix failures caused by your changes and rerun until the tests pass. A failing flow test of another flow means a changed action no longer fits the `context` of that flow: fix the action so that it keeps working there, or tell the developer. Report failures clearly unrelated to your changes instead of fixing them.
 
-If the implementation requires changing the graph, call `reopen_draft` for the flow and every flow approved together with it, tell the developer why, and return to drafting. Action code and tests are not reverted: after approving again, continue from the already changed actions (read them with `get_action_code`) and run the tests as in step 7.
+If the implementation requires changing the graph, call `reopen_draft` for the flow and every flow approved together with it, tell the developer why, and return to drafting. Action code and tests are not reverted: after approving again, continue from the already changed actions (read them with `get_action_code`) and run the tests as in step 8.
 
 Actions are edited in place, so changed action code is live before promotion: an action may temporarily not match the `stable.json` of the flows that use it (for example a new result in `RESULTS`). Change an existing action so that it keeps working with its other flows, or tell the developer. The invariant that `stable.json` describes a working implementation holds when you finish a phase, not in the middle of the implementation.
 
@@ -231,3 +233,23 @@ Keep tests black-box:
 - do not test private implementation details
 
 Stub only true external boundaries such as remote APIs, third-party services or external libraries, never action-local code.
+
+# Flow tests
+
+Action tests check each action in isolation, so they cannot notice that one action changed what it writes to `context` while the next action still expects the old keys or format. Flow tests close this gap: they run the whole flow through the real actions and check how the actions cooperate through the shared `context`.
+
+They use Minitest and live in `test/flows/<flow name>/`, in files named `test.rb` or ending with `_test.rb`; write them with `update_flow_tests` and read them with `get_flow`. Every test file starts with `require "sync_traverse/action_test_helper"` and defines its test class in the namespace of the flow name with the `FlowTest` suffix, inheriting from `ActiveSupport::TestCase`, for example `Orders::PurchaseFlowTest` for the flow `orders/purchase`. Tests of flows and actions run in one process, so test class names must not collide.
+
+Every test calls `SyncTraverse::Runner.call(flow_name, context)` with an initial `context`, as the entrypoint does, and verifies:
+
+- the returned result, which tells how the flow ended
+- the `context` after the run: the values the actions pass to each other and the output the caller reads
+- relevant side effects, such as created records
+
+Within `run_tests` and `promote_flows` the runner executes the approved flow or the draft if there is one, so the tests check the graph being implemented.
+
+Cover every path from the source action to each end of the flow, with an initial `context` and stubs that make the actions return the results of that path. Keep the tests black-box:
+
+- never call or stub actions of the flow; the real actions run
+- stub only true external boundaries such as remote APIs, third-party services or external libraries
+- do not repeat the detailed checks of action tests; focus on the data passed between actions and the outcome of the flow

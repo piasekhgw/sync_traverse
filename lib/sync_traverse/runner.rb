@@ -28,7 +28,9 @@ module SyncTraverse
     attr_reader :flow
 
     def load_flow(flow_name)
-      JSON.parse(File.read(File.join(SyncTraverse.config.flows_dir, flow_name, "stable.json")))
+      config = SyncTraverse.config
+      paths = config.flow_phases.map { |phase| File.join(config.flows_dir, flow_name, "#{phase}.json") }
+      JSON.parse(File.read(paths.find { |path| File.exist?(path) } || paths.last))
     end
 
     def start_action(flow)

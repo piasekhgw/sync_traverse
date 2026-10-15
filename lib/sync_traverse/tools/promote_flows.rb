@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class PromoteFlows < FlowBase
       tool_name "promote_flows"
-      description "Promotes the approved flows to stable in one all-or-nothing call: replaces stable.json and stable.mmd of each flow with approved.json and approved.mmd, which then no longer exist. An approved flow without actions deletes the flow instead. Every flow must be in the approved phase. Like approve_drafts, the call is rejected when an action has different results in different flows: the approved flows of the call are compared with each other and with the stable versions of all other flows. Promote together the flows that were approved together. Call it only after the implementation is ready; it runs the flow tests of the flows and the tests of their actions itself and promotes nothing if any of them fails."
+      description "Promotes the approved flows to stable in one all-or-nothing call: replaces stable.json and stable.mmd of each flow with approved.json and approved.mmd, which then no longer exist. An approved flow without actions deletes the flow instead. Every flow must be in the approved phase. Like approve_drafts, the call is rejected when an action has different results in different flows: the approved flows of the call are compared with each other and with the stable versions of all other flows. Promote together the flows that were approved together. Call it only after the implementation is ready; it runs the results check and flow tests of the flows and the tests of their actions itself and promotes nothing if any of them fails."
       input_schema(
         properties: {
           flow_names: FLOW_NAMES_SCHEMA

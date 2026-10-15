@@ -28,7 +28,7 @@ module SyncTraverse
         update("orders/validate_order", "action.rb" => "'action'", "test.rb" => "'test'", "rules_test.rb" => "'rules'")
 
         assert_equal %w[action.rb], Dir.children(File.join(actions_dir, "orders/validate_order"))
-        assert_equal %w[rules_test.rb test.rb], Dir.children(File.join(tests_dir, "orders/validate_order")).sort
+        assert_equal %w[rules_test.rb test.rb], Dir.children(File.join(action_tests_dir, "orders/validate_order")).sort
       end
 
       def test_replaces_existing_file_and_keeps_unlisted_files
@@ -100,7 +100,7 @@ module SyncTraverse
 
         assert_equal "Success", response.content.first[:text]
         assert_empty Dir.children(actions_dir)
-        assert_empty Dir.children(tests_dir)
+        assert_empty Dir.children(action_tests_dir)
       end
 
       def test_deleting_only_some_files_never_deletes_the_action

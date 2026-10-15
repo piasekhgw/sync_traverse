@@ -39,7 +39,7 @@ module SyncTraverse
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
-        assert_equal "Phase: stable", response.content.last[:text]
+        assert_equal "stable", JSON.parse(response.content.first[:text])["phase"]
       end
 
       def test_deletes_flow_when_approved_flow_has_no_actions
@@ -50,6 +50,26 @@ module SyncTraverse
 
         refute_predicate response, :error?
         refute File.directory?(File.join(flows_dir, "orders"))
+      end
+
+      def test_deletes_flow_tests_when_approved_flow_has_no_actions
+        write_flow_stable("orders/purchase", { "a" => { "ok" => nil } })
+        write_flow_approved("orders/purchase", {})
+        write_flow_test("orders/purchase", "'test'")
+
+        PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
+
+        refute File.directory?(File.join(flow_tests_dir, "orders"))
+      end
+
+      def test_promotes_nothing_when_flow_test_fails
+        write_approved("orders/purchase", { "charge" => { "paid" => nil } })
+        write_flow_test("orders/purchase", failing_test)
+
+        response = PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
+
+        assert_match(/\ATests failed; nothing was promoted\.\n.*boom/m, response.content.first[:text])
+        assert_path_exists flow_approved_path("orders/purchase")
       end
 
       def test_rejects_draft_that_was_not_approved
@@ -117,7 +137,7 @@ module SyncTraverse
         refute_predicate response, :error?
       end
 
-      def test_promotes_nothing_when_flow_test_fails
+      def test_promotes_nothing_when_results_check_fails
         write_flow_stable("orders/purchase", { "charge" => { "paid" => nil } })
         write_flow_approved("orders/purchase", { "charge" => { "paid" => nil, "declined" => nil } })
         write_action_with_results("charge", %w[paid])

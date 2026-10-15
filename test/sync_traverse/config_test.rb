@@ -5,7 +5,10 @@ module SyncTraverse
     def test_resolves_fixed_paths_relative_to_root_dir
       config = Config.new("/project")
 
-      assert_equal ["/project/app/actions", "/project/app/flows"], [config.actions_dir, config.flows_dir]
+      assert_equal(
+        ["/project/app/actions", "/project/test/actions", "/project/app/flows", "/project/test/flows"],
+        [config.actions_dir, config.action_tests_dir, config.flows_dir, config.flow_tests_dir]
+      )
     end
   end
 end

@@ -151,6 +151,49 @@ module SyncTraverse
         assert_match(/2 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
       end
 
+      def test_runs_flow_tests_through_real_actions_of_the_draft_flow
+        write_flow_stable("orders/purchase", { "price_order" => { "priced" => nil } })
+        write_flow_draft("orders/purchase", { "price_order" => { "priced" => "charge_payment" }, "charge_payment" => { "paid" => nil } })
+        write_context_action("price_order", :priced, "context[:total] = 100")
+        write_context_action("charge_payment", :paid, "context[:charged] = context.fetch(:total)")
+        write_flow_test("orders/purchase", purchase_flow_test(<<~RUBY))
+          context = {}
+          assert_equal "paid", SyncTraverse::Runner.call("orders/purchase", context)
+          assert_equal 100, context[:charged]
+        RUBY
+
+        response = run_tests(flows: ["orders/purchase"])
+
+        refute_predicate response, :error?
+        assert_match(/3 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
+      end
+
+      def test_flow_test_detects_action_expecting_old_context_key
+        write_flow_stable("orders/purchase", { "price_order" => { "priced" => "charge_payment" }, "charge_payment" => { "paid" => nil } })
+        write_context_action("price_order", :priced, "context[:total_cents] = 100")
+        write_context_action("charge_payment", :paid, "context[:charged] = context.fetch(:total)")
+        write_flow_test("orders/purchase", purchase_flow_test(<<~RUBY))
+          assert_equal "paid", SyncTraverse::Runner.call("orders/purchase", {})
+        RUBY
+
+        response = run_tests(flows: ["orders/purchase"])
+
+        assert_predicate response, :error?
+        assert_match(/KeyError: key not found: :total/, response.content.first[:text])
+      end
+
+      def test_runs_only_flow_tests_of_the_given_flows
+        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_stable("orders/refund", { "validate_order" => { "valid" => nil } })
+        write_action("validate_order", %w[valid])
+        write_flow_test("orders/refund", failing_test("RefundFlowTest"))
+
+        response = run_tests(flows: ["orders/purchase"])
+
+        refute_predicate response, :error?
+        assert_match(/1 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
+      end
+
       def test_reports_failing_action_tests
         write_action_test("validate_order", failing_test("ValidateOrderTest"))
 
@@ -192,6 +235,37 @@ module SyncTraverse
           module #{namespace}
             class Action
               RESULTS = %i[#{results.join(" ")}].freeze
+            end
+          end
+        RUBY
+      end
+
+      def write_context_action(action_name, result, statement)
+        namespace = action_name.split("_").map(&:capitalize).join
+        write_action_file(action_name, <<~RUBY)
+          module #{namespace}
+            class Action
+              RESULTS = %i[#{result}].freeze
+
+              def self.call(context)
+                #{statement}
+                :#{result}
+              end
+            end
+          end
+        RUBY
+      end
+
+      # Requires the actions itself, as the application autoloads them in a real setup.
+      def purchase_flow_test(body)
+        <<~RUBY
+          require "minitest/autorun"
+          require #{action_path("price_order").inspect}
+          require #{action_path("charge_payment").inspect}
+
+          class PurchaseFlowTest < Minitest::Test
+            def test_purchase
+          #{body.gsub(/^/, "    ")}
             end
           end
         RUBY

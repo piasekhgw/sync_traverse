@@ -6,7 +6,7 @@ module SyncTraverse
       TESTS_RUNNER = File.expand_path("../tests_runner.rb", __dir__)
 
       tool_name "run_tests"
-      description "Runs tests in one application process. For every given flow it runs the flow test, which checks for every action of the flow that the results used by the flow are exactly the results declared in the RESULTS constant of the action. For every given action it runs the Minitest tests of the action (test files in the test directory of the action)."
+      description "Runs tests in one application process. For every given flow it runs the results check, which verifies for every action of the flow that the results used by the flow are exactly the results declared in the RESULTS constant of the action, and the flow tests (test files in test/flows/<flow>/), which run the flow through the real actions with SyncTraverse::Runner. For every given action it runs the Minitest tests of the action (test files in the test directory of the action)."
       input_schema(
         properties: {
           actions: {
@@ -17,7 +17,7 @@ module SyncTraverse
           flows: {
             type: "array",
             items: { type: "string" },
-            description: "Names of the flows whose flow tests to run. The approved flow is tested if it exists, else the draft, else the stable flow. Each must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
+            description: "Names of the flows whose results check and flow tests to run. The approved flow is checked and executed if it exists, else the draft, else the stable flow. Each must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
           }
         }
       )
@@ -35,10 +35,13 @@ module SyncTraverse
             untested_actions = test_files.select { |_, files| files.empty? }.keys
             return error_response("No tests found for action: #{untested_actions.join(", ")}") if untested_actions.any?
 
+            flow_tests = flows.flat_map { |flow| flow_test_files(flow).map { |file| flow_test_path(flow, file) } }
+
             run(
+              root_dir: SyncTraverse.config.root_dir,
               actions_dir: File.expand_path(actions_dir),
               flows: flows.to_h { |flow| [flow, File.expand_path(current_flow_path(flow))] },
-              test_files: test_files.values.flatten.map { |file| File.expand_path(file) }
+              test_files: (test_files.values.flatten + flow_tests).map { |file| File.expand_path(file) }
             )
           end
         end

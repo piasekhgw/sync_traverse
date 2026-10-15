@@ -5,6 +5,7 @@ module SyncTraverse
     class Base < MCP::Tool
       NAME_PATTERN = %r{\A[a-z0-9_]+(/[a-z0-9_]+)*\z}
       FILE_PATTERN = /\A[a-z0-9_]+(\.[a-z0-9]+)+\z/
+      TEST_FILE_PATTERN = /(\A|_)test\.rb\z/
 
       class << self
         private
@@ -31,9 +32,8 @@ module SyncTraverse
         end
 
         def current_flow_path(flow_name)
-          return flow_approved_path(flow_name) if approved?(flow_name)
-
-          draft?(flow_name) ? flow_draft_path(flow_name) : flow_stable_path(flow_name)
+          phase = flow_phase(flow_name)
+          File.join(flow_path(flow_name), "#{phase == "none" ? "stable" : phase}.json")
         end
 
         def flow_stable_diagram_path(flow_name)
@@ -61,10 +61,7 @@ module SyncTraverse
         end
 
         def flow_phase(flow_name)
-          return "approved" if approved?(flow_name)
-          return "draft" if draft?(flow_name)
-
-          stable?(flow_name) ? "stable" : "none"
+          Config::FLOW_PHASES.find { |phase| File.exist?(File.join(flow_path(flow_name), "#{phase}.json")) } || "none"
         end
 
         def flows_dir
@@ -78,6 +75,38 @@ module SyncTraverse
         def write_file(path, content)
           FileUtils.mkdir_p(File.dirname(path))
           File.write(path, content)
+        end
+
+        def delete_file(path, *roots)
+          FileUtils.rm_f(path)
+
+          dir = File.dirname(path)
+          while roots.any? { |root| dir.start_with?("#{root}/") } && Dir.empty?(dir)
+            Dir.rmdir(dir)
+            dir = File.dirname(dir)
+          end
+        end
+
+        def directory_files(dir)
+          Dir.glob(File.join(dir, "*")).filter_map do |path|
+            File.basename(path) if File.file?(path)
+          end
+        end
+
+        def test_file?(file)
+          file.match?(TEST_FILE_PATTERN)
+        end
+
+        def flow_tests_dir
+          SyncTraverse.config.flow_tests_dir
+        end
+
+        def flow_test_files(flow_name)
+          directory_files(File.join(flow_tests_dir, flow_name)).select { |file| test_file?(file) }.sort
+        end
+
+        def flow_test_path(flow_name, file)
+          File.join(flow_tests_dir, flow_name, file)
         end
 
         def text_response(*messages)
