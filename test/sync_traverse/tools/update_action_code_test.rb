@@ -145,6 +145,54 @@ module SyncTraverse
         assert_equal "Cannot delete action orders/validate_order, it is used by flow(s): orders/purchase", response.content.first[:text]
       end
 
+      def test_rejects_results_change_of_action_used_only_by_stable_flow
+        write_flow_stable("orders/purchase", { "orders/validate_order" => { "valid" => nil } })
+        write_action_code("orders/validate_order", "RESULTS = %i[valid].freeze")
+
+        response = update("orders/validate_order", "action.rb" => "RESULTS = %i[done].freeze")
+
+        assert_predicate response, :error?
+        assert_match(%r{\ACannot change RESULTS .* none of the flows using it \(orders/purchase\) has an approved graph}, response.content.first[:text])
+        assert_equal "RESULTS = %i[valid].freeze", File.read(action_path("orders/validate_order"))
+      end
+
+      def test_rejects_unreadable_results_of_action_used_only_by_draft_flow
+        write_flow_draft("orders/purchase", { "orders/validate_order" => { "valid" => nil } })
+        write_action_code("orders/validate_order", "RESULTS = %i[valid].freeze")
+
+        assert_predicate update("orders/validate_order", "action.rb" => "RESULTS = [VALID].freeze"), :error?
+      end
+
+      def test_allows_code_change_keeping_results_of_action_used_only_by_stable_flow
+        write_flow_stable("orders/purchase", { "orders/validate_order" => { "valid" => nil, "invalid" => nil } })
+        write_action_code("orders/validate_order", "RESULTS = %i[valid invalid].freeze")
+
+        response = update("orders/validate_order", "action.rb" => "RESULTS = [:invalid, :valid].freeze\n# fixed", "order.rb" => "'local'")
+
+        assert_equal "Success", response.content.first[:text]
+        assert_equal "'local'", File.read(action_path("orders/validate_order", "order.rb"))
+      end
+
+      def test_allows_results_change_when_one_of_flows_using_action_is_approved
+        write_flow_stable("orders/refund", { "orders/validate_order" => { "valid" => nil } })
+        write_flow_approved("orders/purchase", { "orders/validate_order" => { "done" => nil } })
+        write_action_code("orders/validate_order", "RESULTS = %i[valid].freeze")
+
+        response = update("orders/validate_order", "action.rb" => "RESULTS = %i[done].freeze")
+
+        assert_equal "Success", response.content.first[:text]
+        assert_equal "RESULTS = %i[done].freeze", File.read(action_path("orders/validate_order"))
+      end
+
+      def test_allows_files_other_than_action_file_of_action_used_only_by_stable_flow
+        write_flow_stable("orders/purchase", { "orders/validate_order" => { "valid" => nil } })
+        write_action_code("orders/validate_order", "'code without results'")
+
+        response = update("orders/validate_order", "order.rb" => "'local'", "test.rb" => "'test'")
+
+        assert_equal "Success", response.content.first[:text]
+      end
+
       def test_cannot_write_outside_action_directory
         response = update("orders/validate_order", "action.rb" => "'code'", "../other.rb" => "'x'")
 

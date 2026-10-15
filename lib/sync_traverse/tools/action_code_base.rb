@@ -24,12 +24,6 @@ module SyncTraverse
           (action_files(action_name) | written) - deleted
         end
 
-        def flows_using_action(action_name)
-          Dir.glob(File.join(flows_dir, "**", "{stable,draft,approved}.json")).filter_map do |path|
-            File.dirname(path).delete_prefix("#{flows_dir}/") if read_json(path).key?(action_name)
-          end.uniq.sort
-        end
-
         def action_files(action_name)
           code_files = directory_files(File.join(actions_dir, action_name))
           test_files = directory_files(File.join(action_tests_dir, action_name))

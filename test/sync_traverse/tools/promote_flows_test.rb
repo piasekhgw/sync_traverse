@@ -161,6 +161,18 @@ module SyncTraverse
         assert_empty Dir.glob(File.join(flows_dir, "**", "stable.json"))
       end
 
+      def test_promotes_nothing_when_flow_test_of_other_flow_using_the_action_fails
+        write_flow_stable("orders/refund", { "charge" => { "paid" => nil } })
+        write_flow_test("orders/refund", failing_test)
+        write_approved("orders/purchase", { "charge" => { "paid" => nil } })
+
+        response = PromoteFlows.call(flow_names: ["orders/purchase"], server_context: {})
+
+        assert_predicate response, :error?
+        assert_match(/boom/, response.content.first[:text])
+        assert_path_exists flow_approved_path("orders/purchase")
+      end
+
       def test_promotes_when_action_tests_pass
         write_approved("orders/purchase", { "charge" => { "paid" => nil } })
         write_action_test("charge", passing_test)
