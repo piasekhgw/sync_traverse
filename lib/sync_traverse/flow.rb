@@ -7,7 +7,9 @@ module SyncTraverse
     end
 
     def to_h
-      definition
+      targets = definition.values.flat_map(&:values)
+      start, rest = definition.partition { |action, _| !targets.include?(action) }
+      (start + rest).to_h
     end
 
     def add_transitions(transitions)
