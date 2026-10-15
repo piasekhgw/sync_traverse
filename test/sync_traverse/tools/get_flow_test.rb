@@ -10,6 +10,15 @@ module SyncTraverse
         assert_equal({ "phase" => "none", "graph" => {}, "flow_tests" => {} }, flow_json(response))
       end
 
+      def test_reports_corrupted_flow_file
+        write_code_file(flow_draft_path("orders/purchase"), "{ \"validate_order\": ")
+
+        response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
+
+        assert_predicate response, :error?
+        assert_match(/draft\.json is not valid JSON/, response.content.first[:text])
+      end
+
       def test_returns_existing_flow
         write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
 

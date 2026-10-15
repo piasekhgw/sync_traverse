@@ -7,12 +7,14 @@ module SyncTraverse
       FILE_PATTERN = /\A[a-z0-9_]+(\.[a-z0-9]+)+\z/
       TEST_FILE_PATTERN = /(\A|_)test\.rb\z/
 
+      class CorruptedFileError < StandardError; end
+
       class << self
         private
 
         def get_flow(flow_name)
           path = current_flow_path(flow_name)
-          SyncTraverse::Flow.new(File.exist?(path) ? JSON.parse(read_file(path)) : {}).to_h
+          SyncTraverse::Flow.new(File.exist?(path) ? read_json(path) : {}).to_h
         end
 
         def get_flows(flow_names)
@@ -77,9 +79,21 @@ module SyncTraverse
           File.read(path, encoding: Encoding::UTF_8)
         end
 
+        def read_json(path)
+          JSON.parse(read_file(path))
+        rescue JSON::ParserError
+          raise CorruptedFileError, "File #{path} is not valid JSON; fix it or restore it from git"
+        end
+
+        # Writes through a temporary file and a rename, so an interrupted write never leaves a truncated file.
+        # The dot prefix hides the temporary file from directory listings.
         def write_file(path, content)
           FileUtils.mkdir_p(File.dirname(path))
-          File.write(path, content)
+          tmp = File.join(File.dirname(path), ".#{File.basename(path)}.tmp")
+          File.write(tmp, content)
+          File.rename(tmp, path)
+        ensure
+          FileUtils.rm_f(tmp) if tmp
         end
 
         def delete_file(path, *roots)
@@ -130,6 +144,8 @@ module SyncTraverse
           return error_response("Invalid file name(s): #{invalid_files.join(", ")}") if invalid_files.any?
 
           yield
+        rescue CorruptedFileError => e
+          error_response(e.message)
         end
       end
     end
