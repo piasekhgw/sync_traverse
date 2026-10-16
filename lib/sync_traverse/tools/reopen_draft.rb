@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class ReopenDraft < FlowBase
       tool_name "reopen_draft"
-      description "Returns the approved flow to the draft phase by renaming approved.json back to draft.json (and approved.mmd to draft.mmd). update_flow works again. Use it when the implementation requires changing the graph."
+      description "Returns the approved flow to the draft phase by renaming approved.json back to draft.json (and approved.mmd to draft.mmd). update_flow works again. Use it only when the implementation requires a concrete change of the graph (an action, result or transition); never because tests fail or the implementation is hard: then fix the code while the flow stays approved, or report the problem to the developer."
       input_schema(
         properties: {
           flow_name: FLOW_NAME_SCHEMA
