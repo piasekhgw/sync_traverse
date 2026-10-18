@@ -162,7 +162,7 @@ Avoid duplication through meaningful shared actions, not through hidden shared i
 - Otherwise it is an implementation detail (types, mappers, clients, private methods): keep it local in each action, even if it is duplicated between actions. Never create shared services, helpers, repositories, base classes or modules only to remove duplication.
 - Before changing a shared action, find every flow that uses it (search `app/flows/` for the action name) and assess how the change affects each of them.
 
-When refactoring legacy code into a flow, copy the required logic into the relevant actions instead of wrapping or delegating to it. Copy only the parts of the legacy code that the action uses and keep its behavior unchanged; tell the developer about every difference. Do not modify or remove the legacy code: the developer removes it deliberately.
+When refactoring legacy code into a flow, copy the required logic into the relevant actions instead of wrapping or delegating to it. Copy only the parts of the legacy code that the action uses and keep its behavior unchanged, including the exceptions it raises: an exception the legacy code does not rescue stays an exception, not a new result. Do not fix bugs of the legacy code; suggest the fixes instead. Do not modify or remove the legacy code: the developer removes it deliberately.
 
 # Tools
 
@@ -182,13 +182,13 @@ A flow has one definition, `app/flows/<flow name>/definition.json`; `SyncTravers
 
 Actions are shared between flows. When a changed action breaks another flow (its results check or flow tests fail), fix the action so that it keeps working there or tell the developer; do not change other flows unasked. When you change how an action talks to something external (API, schema, table), tell the developer which other actions use the same thing.
 
-End your turn with a short report: the diagram (`definition.mmd`) of every flow you changed, the actions of the flow that are not implemented yet, and the `run_tests` failures that remain and why.
+End your turn with a short report: the diagram of every flow you changed, pasted unchanged from its `definition.mmd`, the actions of the flow that are not implemented yet, and the `run_tests` failures that remain and why.
 
 # Tests
 
 All tests use Minitest, regardless of the application's other test frameworks. Test files are named `test.rb` or end with `_test.rb`; other files in a test directory, such as fixtures, are not run. Test directories are flat (no subdirectories). Every test file starts with `require "sync_traverse/action_test_helper"` (never the application's `test_helper`) and defines its test class inheriting from `ActiveSupport::TestCase`. That helper loads the Rails test environment: every test runs in a database transaction rolled back after the test, and fixtures and the helpers of the application's `test_helper` are not loaded, so create the records a test needs in the test itself. All tests of the project run in one process, so test class names must not collide.
 
-Keep tests black-box and stub only true external boundaries such as remote APIs, third-party services or external libraries, never action-local code or actions. Work with real database records; never replace models or other objects with Structs or fake objects. Tests are isolated like actions: they use only action-local classes (an action test those of its own directory, a flow test those of the actions of the flow), never application classes such as global models. When a test needs a class that no action provides, for example a model of a table that no action of the flow uses, define it in the test file.
+Keep tests black-box and stub only true external boundaries such as remote APIs, third-party services or external libraries, never action-local code or actions. Work with real database records; never replace models or other application data with Structs or fake objects. Fake objects are allowed only as return values of stubbed external boundaries. Tests are isolated like actions: they use only action-local classes (an action test those of its own directory, a flow test those of the actions of the flow), never application classes such as global models. When a test needs a class that no action provides, for example a model of a table that no action of the flow uses, define it in the test file.
 
 ## Action tests
 
