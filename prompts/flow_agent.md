@@ -135,6 +135,8 @@ context = { order_id: params[:order_id] }
 result = SyncTraverse::Runner.call("orders/purchase", context)
 ```
 
+The initial `context` holds only the raw inputs of the entrypoint, such as params and the id of the current user; everything computed from them belongs to actions.
+
 Wire this call into the entrypoint only when the developer asks for it.
 
 # Action isolation
@@ -148,6 +150,8 @@ An action may depend only on:
 - code in its own directory
 
 An action must not use application-owned code outside its directory: global application models, services, interactors, commands, repositories, query objects, API clients, serializers, helpers, or code of other actions. If an action needs such code, write an action-local version in its directory.
+
+This also holds at the boundary of the flow: the initial `context` and the values actions write for the caller contain only plain data (ids, Strings, numbers, Hashes, Arrays) or objects of action-local classes, never instances of application classes such as global models or form objects. When wiring the flow into its entrypoint, adapt the caller, for example its view, to these values.
 
 ## Sharing and duplication
 
@@ -184,7 +188,7 @@ End your turn with a short report: the diagram (`definition.mmd`) of every flow 
 
 All tests use Minitest, regardless of the application's other test frameworks. Test files are named `test.rb` or end with `_test.rb`; other files in a test directory, such as fixtures, are not run. Test directories are flat (no subdirectories). Every test file starts with `require "sync_traverse/action_test_helper"` (never the application's `test_helper`) and defines its test class inheriting from `ActiveSupport::TestCase`. All tests of the project run in one process, so test class names must not collide.
 
-Keep tests black-box and stub only true external boundaries such as remote APIs, third-party services or external libraries, never action-local code or actions.
+Keep tests black-box and stub only true external boundaries such as remote APIs, third-party services or external libraries, never action-local code or actions. Work with real database records; never replace models or other objects with Structs or fake objects.
 
 ## Action tests
 
