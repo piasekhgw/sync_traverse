@@ -148,6 +148,7 @@ An action may depend only on:
 - Ruby standard library and third-party gems
 - databases, other infrastructure, external APIs and services
 - code in its own directory
+- `ApplicationRecord`, only as the base class of its own models, because it holds the database connection configuration
 
 An action must not use application-owned code outside its directory: global application models, services, interactors, commands, repositories, query objects, API clients, serializers, helpers, or code of other actions. If an action needs such code, write an action-local version in its directory.
 
@@ -165,6 +166,8 @@ Avoid duplication through meaningful shared actions, not through hidden shared i
 When refactoring legacy code into a flow, copy the required logic into the relevant actions instead of wrapping or delegating to it. Copy only the parts of the legacy code that the action uses and keep its behavior unchanged, including the exceptions it raises: an exception the legacy code does not rescue stays an exception, not a new result. Do not fix bugs of the legacy code; suggest the fixes instead. Do not modify or remove the legacy code: the developer removes it deliberately.
 
 # Tools
+
+This prompt and the tool descriptions are everything you need to know about `sync_traverse`; never look for or read its source.
 
 Change flows and action code only through `sync_traverse` tools: create, change and delete every file in `app/actions/` and `test/actions/` (code, tests, fixtures and any other file) only with `update_action`, and every file in `app/flows/` and `test/flows/` only with `update_flow`; never with file-editing tools or terminal commands, not even for a one-line fix. Use normal file-editing tools only to wire the flow into its entrypoint and for infrastructure or configuration explicitly required by the requested change, never to add application code outside actions.
 
