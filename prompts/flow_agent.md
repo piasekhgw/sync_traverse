@@ -151,7 +151,7 @@ An action may depend only on:
 
 An action must not use application-owned code outside its directory: global application models, services, interactors, commands, repositories, query objects, API clients, serializers, helpers, or code of other actions. If an action needs such code, write an action-local version in its directory.
 
-This also holds at the boundary of the flow: the initial `context` and the values actions write for the caller contain only plain data (ids, Strings, numbers, Hashes, Arrays) or objects of action-local classes, never instances of application classes such as global models or form objects. When wiring the flow into its entrypoint, adapt the caller, for example its view, to these values.
+This also holds at the boundary of the flow: the initial `context` and the values actions write for the caller contain only plain data (ids, Strings, numbers, Hashes, Arrays) or objects of action-local classes, never instances of application classes such as global models or form objects. When wiring the flow into its entrypoint, adapt the caller, for example its view, to these values. Do not make action-local classes pretend to be application classes (for example by overriding `model_name`); adapt the caller instead.
 
 ## Sharing and duplication
 
@@ -162,7 +162,7 @@ Avoid duplication through meaningful shared actions, not through hidden shared i
 - Otherwise it is an implementation detail (types, mappers, clients, private methods): keep it local in each action, even if it is duplicated between actions. Never create shared services, helpers, repositories, base classes or modules only to remove duplication.
 - Before changing a shared action, find every flow that uses it (search `app/flows/` for the action name) and assess how the change affects each of them.
 
-When refactoring legacy code into a flow, copy the required logic into the relevant actions instead of wrapping or delegating to it. Do not modify or remove the legacy code: the developer removes it deliberately.
+When refactoring legacy code into a flow, copy the required logic into the relevant actions instead of wrapping or delegating to it. Copy only the parts of the legacy code that the action uses and keep its behavior unchanged; tell the developer about every difference. Do not modify or remove the legacy code: the developer removes it deliberately.
 
 # Tools
 
@@ -188,7 +188,7 @@ End your turn with a short report: the diagram (`definition.mmd`) of every flow 
 
 All tests use Minitest, regardless of the application's other test frameworks. Test files are named `test.rb` or end with `_test.rb`; other files in a test directory, such as fixtures, are not run. Test directories are flat (no subdirectories). Every test file starts with `require "sync_traverse/action_test_helper"` (never the application's `test_helper`) and defines its test class inheriting from `ActiveSupport::TestCase`. That helper loads the Rails test environment: every test runs in a database transaction rolled back after the test, and fixtures and the helpers of the application's `test_helper` are not loaded, so create the records a test needs in the test itself. All tests of the project run in one process, so test class names must not collide.
 
-Keep tests black-box and stub only true external boundaries such as remote APIs, third-party services or external libraries, never action-local code or actions. Work with real database records; never replace models or other objects with Structs or fake objects.
+Keep tests black-box and stub only true external boundaries such as remote APIs, third-party services or external libraries, never action-local code or actions. Work with real database records; never replace models or other objects with Structs or fake objects. Tests are isolated like actions: they use only action-local classes (an action test those of its own directory, a flow test those of the actions of the flow), never application classes such as global models. When a test needs a class that no action provides, for example a model of a table that no action of the flow uses, define it in the test file.
 
 ## Action tests
 
