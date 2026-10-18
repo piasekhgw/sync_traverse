@@ -186,7 +186,7 @@ End your turn with a short report: the diagram (`definition.mmd`) of every flow 
 
 # Tests
 
-All tests use Minitest, regardless of the application's other test frameworks. Test files are named `test.rb` or end with `_test.rb`; other files in a test directory, such as fixtures, are not run. Test directories are flat (no subdirectories). Every test file starts with `require "sync_traverse/action_test_helper"` (never the application's `test_helper`) and defines its test class inheriting from `ActiveSupport::TestCase`. All tests of the project run in one process, so test class names must not collide.
+All tests use Minitest, regardless of the application's other test frameworks. Test files are named `test.rb` or end with `_test.rb`; other files in a test directory, such as fixtures, are not run. Test directories are flat (no subdirectories). Every test file starts with `require "sync_traverse/action_test_helper"` (never the application's `test_helper`) and defines its test class inheriting from `ActiveSupport::TestCase`. That helper loads the Rails test environment: every test runs in a database transaction rolled back after the test, and fixtures and the helpers of the application's `test_helper` are not loaded, so create the records a test needs in the test itself. All tests of the project run in one process, so test class names must not collide.
 
 Keep tests black-box and stub only true external boundaries such as remote APIs, third-party services or external libraries, never action-local code or actions. Work with real database records; never replace models or other objects with Structs or fake objects.
 
