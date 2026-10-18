@@ -3,157 +3,90 @@ require "test_helper"
 module SyncTraverse
   module Tools
     class RunTestsTest < SyncTraverse::TestCase
-      def test_rejects_invalid_names
-        response = run_tests(actions: ["../escape"], flows: ["bad flow"])
-
-        assert_predicate response, :error?
-        assert_equal "Invalid name(s): bad flow, ../escape", response.content.first[:text]
-      end
-
-      def test_runs_nothing_without_actions_and_flows
+      def test_runs_nothing_in_empty_project
         response = run_tests
 
         refute_predicate response, :error?
         assert_match(/0 runs, 0 assertions, 0 failures, 0 errors/, response.content.first[:text])
       end
 
-      def test_errors_when_flow_not_found
-        response = run_tests(flows: ["orders/purchase"])
-
-        assert_predicate response, :error?
-        assert_equal "Flow not found: orders/purchase", response.content.first[:text]
-      end
-
-      def test_errors_when_no_tests_found_for_action
-        write_action_file("validate_order", "'code'")
-
-        response = run_tests(actions: ["validate_order"])
-
-        assert_predicate response, :error?
-        assert_equal "No tests found for action: validate_order", response.content.first[:text]
-      end
-
-      def test_runs_flow_test_passing_when_results_match_for_every_action
-        write_flow_stable(
+      def test_passes_when_results_match_for_every_action_of_every_flow
+        write_flow(
           "orders/purchase",
           { "validate_order" => { "valid" => "charge_payment", "invalid" => nil }, "charge_payment" => { "paid" => nil } }
         )
+        write_flow("orders/refund", { "validate_order" => { "valid" => nil, "invalid" => nil } })
         write_action("validate_order", %w[valid invalid])
         write_action("charge_payment", %w[paid])
 
-        response = run_tests(flows: ["orders/purchase"])
+        response = run_tests
 
         refute_predicate response, :error?
-        assert_match(/2 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
-      end
-
-      def test_flow_test_uses_draft_instead_of_stable_flow
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_flow_draft("orders/purchase", { "validate_order" => { "valid" => nil, "invalid" => nil } })
-        write_action("validate_order", %w[valid invalid])
-
-        response = run_tests(flows: ["orders/purchase"])
-
-        refute_predicate response, :error?
-        assert_match(/1 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
-      end
-
-      def test_flow_test_uses_approved_flow_instead_of_stable_flow
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_flow_approved("orders/purchase", { "validate_order" => { "valid" => nil, "invalid" => nil } })
-        write_action("validate_order", %w[valid invalid])
-
-        response = run_tests(flows: ["orders/purchase"])
-
-        refute_predicate response, :error?
-        assert_match(/1 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
-      end
-
-      def test_flow_test_does_not_run_action_tests_that_were_not_requested
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_action("validate_order", %w[valid])
-        write_action_test("validate_order", failing_test("ValidateOrderTest"))
-
-        response = run_tests(flows: ["orders/purchase"])
-
-        refute_predicate response, :error?
-        assert_match(/1 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
+        assert_match(/3 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
       end
 
       def test_fails_when_flow_uses_result_not_declared_by_action
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil, "invalid" => nil } })
+        write_flow("orders/purchase", { "validate_order" => { "valid" => nil, "invalid" => nil } })
         write_action("validate_order", %w[valid])
 
-        response = run_tests(flows: ["orders/purchase"])
+        response = run_tests
 
         assert_predicate response, :error?
         assert_match(/Result\(s\) used by the flow but not declared in .*RESULTS/, response.content.first[:text])
       end
 
       def test_fails_when_action_declares_result_without_transition_in_flow
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow("orders/purchase", { "validate_order" => { "valid" => nil } })
         write_action("validate_order", %w[valid invalid])
 
-        response = run_tests(flows: ["orders/purchase"])
+        response = run_tests
 
         assert_predicate response, :error?
         assert_match(/Result\(s\) declared in .*RESULTS but without a transition in the flow/, response.content.first[:text])
       end
 
       def test_fails_when_action_does_not_declare_results
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow("orders/purchase", { "validate_order" => { "valid" => nil } })
         write_action_file("validate_order", "module ValidateOrder\n  class Action\n  end\nend\n")
 
-        response = run_tests(flows: ["orders/purchase"])
+        response = run_tests
 
         assert_predicate response, :error?
         assert_match(/must define RESULTS/, response.content.first[:text])
       end
 
-      def test_fails_when_action_file_is_missing
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+      def test_fails_with_readable_message_when_action_is_missing
+        write_flow("orders/purchase", { "validate_order" => { "valid" => nil } })
 
-        response = run_tests(flows: ["orders/purchase"])
+        response = run_tests
 
         assert_predicate response, :error?
-        assert_match(%r{cannot load such file.*validate_order/action}, response.content.first[:text])
+        assert_match(%r{Action validate_order not found: .*validate_order/action\.rb does not exist}, response.content.first[:text])
+        refute_match(/LoadError/, response.content.first[:text])
       end
 
-      def test_runs_only_tests_of_the_given_actions
-        write_action_test("validate_order", passing_test("ValidateOrderTest"))
-        write_action_test("unrelated_action", failing_test("UnrelatedActionTest"))
-
-        response = run_tests(actions: ["validate_order"])
-
-        refute_predicate response, :error?
-        assert_match(/1 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
-      end
-
-      def test_runs_every_test_file_of_every_given_action
+      def test_runs_every_action_test_file
         write_action_test("validate_order", passing_test("ValidateOrderTest"))
         write_action_test("validate_order", passing_test("ValidateOrderRulesTest"), file_name: "rules_test.rb")
-        write_action_test("charge_payment", passing_test("ChargePaymentTest"))
+        write_action_test("orders/charge_payment", passing_test("ChargePaymentTest"))
 
-        response = run_tests(actions: %w[validate_order charge_payment])
+        response = run_tests
 
         refute_predicate response, :error?
         assert_match(/3 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
       end
 
-      def test_runs_action_tests_and_flow_tests_together
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_action("validate_order", %w[valid])
-        write_action_test("validate_order", passing_test("ValidateOrderTest"))
+      def test_reports_failing_action_tests
+        write_action_test("validate_order", failing_test("ValidateOrderTest"))
 
-        response = run_tests(actions: ["validate_order"], flows: ["orders/purchase"])
+        response = run_tests
 
-        refute_predicate response, :error?
-        assert_match(/2 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
+        assert_predicate response, :error?
+        assert_match(/boom/, response.content.first[:text])
       end
 
-      def test_runs_flow_tests_through_real_actions_of_the_draft_flow
-        write_flow_stable("orders/purchase", { "price_order" => { "priced" => nil } })
-        write_flow_draft("orders/purchase", { "price_order" => { "priced" => "charge_payment" }, "charge_payment" => { "paid" => nil } })
+      def test_runs_flow_tests_through_real_actions
+        write_flow("orders/purchase", { "price_order" => { "priced" => "charge_payment" }, "charge_payment" => { "paid" => nil } })
         write_context_action("price_order", :priced, "context[:total] = 100")
         write_context_action("charge_payment", :paid, "context[:charged] = context.fetch(:total)")
         write_flow_test("orders/purchase", purchase_flow_test(<<~RUBY))
@@ -162,53 +95,30 @@ module SyncTraverse
           assert_equal 100, context[:charged]
         RUBY
 
-        response = run_tests(flows: ["orders/purchase"])
+        response = run_tests
 
         refute_predicate response, :error?
         assert_match(/3 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
       end
 
       def test_flow_test_detects_action_expecting_old_context_key
-        write_flow_stable("orders/purchase", { "price_order" => { "priced" => "charge_payment" }, "charge_payment" => { "paid" => nil } })
+        write_flow("orders/purchase", { "price_order" => { "priced" => "charge_payment" }, "charge_payment" => { "paid" => nil } })
         write_context_action("price_order", :priced, "context[:total_cents] = 100")
         write_context_action("charge_payment", :paid, "context[:charged] = context.fetch(:total)")
         write_flow_test("orders/purchase", purchase_flow_test(<<~RUBY))
           assert_equal "paid", SyncTraverse::Runner.call("orders/purchase", {})
         RUBY
 
-        response = run_tests(flows: ["orders/purchase"])
+        response = run_tests
 
         assert_predicate response, :error?
         assert_match(/KeyError: key not found: :total/, response.content.first[:text])
       end
 
-      def test_runs_only_flow_tests_of_the_given_flows
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_flow_stable("orders/refund", { "validate_order" => { "valid" => nil } })
-        write_action("validate_order", %w[valid])
-        write_flow_test("orders/refund", failing_test("RefundFlowTest"))
-
-        response = run_tests(flows: ["orders/purchase"])
-
-        refute_predicate response, :error?
-        assert_match(/1 runs, \d+ assertions, 0 failures, 0 errors/, response.content.first[:text])
-      end
-
-      def test_reports_failing_action_tests
-        write_action_test("validate_order", failing_test("ValidateOrderTest"))
-
-        response = run_tests(actions: ["validate_order"])
-
-        assert_predicate response, :error?
-        assert_match(/boom/, response.content.first[:text])
-      end
-
       def test_returns_utf8_output_regardless_of_default_external_encoding
         write_action_test("validate_order", failing_test("ValidateOrderTest", "Należy wybrać miejsce"))
 
-        response = with_default_external(Encoding::US_ASCII) do
-          run_tests(actions: ["validate_order"])
-        end
+        response = with_default_external(Encoding::US_ASCII) { run_tests }
         text = response.content.first[:text]
 
         assert_equal Encoding::UTF_8, text.encoding
@@ -217,8 +127,8 @@ module SyncTraverse
 
       private
 
-      def run_tests(actions: [], flows: [])
-        RunTests.call(actions: actions, flows: flows, server_context: {})
+      def run_tests
+        RunTests.call(server_context: {})
       end
 
       def write_action(action_name, results)

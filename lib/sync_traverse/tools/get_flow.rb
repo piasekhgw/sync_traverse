@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class GetFlow < FlowBase
       tool_name "get_flow"
-      description "Returns the flow for the given flow_name as one JSON object with the fields: phase, graph and flow_tests. 'graph' is the flow graph: the approved flow if it exists, else the draft, else the stable flow. 'flow_tests' maps the file names of the flow tests of the flow (stored in test/flows/<flow>/, changed with update_flow_tests) to their content. Phase 'none': the flow does not exist yet and the graph is empty; update_flow creates its draft. Phase 'stable': no change in progress; the flow describes the working implementation. Phase 'draft': a change is being designed; update_flow changes it. Phase 'approved': the draft was approved with approve_drafts; the graph is locked until reopen_draft or promote_flows. Call this before modifying a flow or its flow tests."
+      description "Returns the flow for the given flow_name as one JSON object with the fields 'definition' and 'test_files'. 'definition' maps every action of the flow to its results, and every result to the target action, or null when that result ends the flow; it is empty when the flow does not exist. 'test_files' maps the names of the files of the flow tests (stored in test/flows/<flow>/) to their content. Call this before changing a flow with update_flow."
       input_schema(
         properties: {
           flow_name: FLOW_NAME_SCHEMA
@@ -12,9 +12,11 @@ module SyncTraverse
 
       def self.call(flow_name:, server_context:)
         with_valid_format(flow_names: [flow_name]) do
-          flow_tests = flow_test_files(flow_name).to_h { |file| [file, read_file(flow_test_path(flow_name, file))] }
+          test_files = flow_test_file_names(flow_name).to_h do |file_name|
+            [file_name, read_file(flow_test_file_path(flow_name, file_name))]
+          end
 
-          text_response(JSON.pretty_generate(phase: flow_phase(flow_name), graph: get_flow(flow_name), flow_tests: flow_tests))
+          text_response(JSON.pretty_generate(definition: read_flow(flow_name), test_files: test_files))
         end
       end
     end

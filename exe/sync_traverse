@@ -14,14 +14,8 @@ when "mcp"
   tools = [
     SyncTraverse::Tools::GetFlow,
     SyncTraverse::Tools::UpdateFlow,
-    SyncTraverse::Tools::UpdateFlowTests,
-    SyncTraverse::Tools::StoreFlowDiagram,
-    SyncTraverse::Tools::ApproveDrafts,
-    SyncTraverse::Tools::ReopenDraft,
-    SyncTraverse::Tools::DiscardDraft,
-    SyncTraverse::Tools::PromoteFlows,
-    SyncTraverse::Tools::GetActionCode,
-    SyncTraverse::Tools::UpdateActionCode,
+    SyncTraverse::Tools::GetAction,
+    SyncTraverse::Tools::UpdateAction,
     SyncTraverse::Tools::RunTests
   ]
 

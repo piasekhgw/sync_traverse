@@ -24,7 +24,10 @@ module SyncTraverse
     private
 
     def assert_results_match(action_name, flow_results, actions_dir)
-      require File.join(actions_dir, action_name, "action")
+      action_file = File.join(actions_dir, action_name, "action.rb")
+      flunk "Action #{action_name} not found: #{action_file} does not exist" unless File.exist?(action_file)
+
+      require action_file
       action = "#{action_name}/action".camelize.constantize
 
       assert action.const_defined?(:RESULTS, false), "#{action} must define RESULTS"

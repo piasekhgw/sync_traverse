@@ -3,65 +3,53 @@ require "test_helper"
 module SyncTraverse
   module Tools
     class GetFlowTest < SyncTraverse::TestCase
-      def test_returns_empty_graph_for_unknown_flow
+      def test_returns_empty_definition_for_unknown_flow
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
         refute_predicate response, :error?
-        assert_equal({ "phase" => "none", "graph" => {}, "flow_tests" => {} }, flow_json(response))
+        assert_equal({ "definition" => {}, "test_files" => {} }, flow_json(response))
       end
 
       def test_reports_corrupted_flow_file
-        write_code_file(flow_draft_path("orders/purchase"), "{ \"validate_order\": ")
+        write_code_file(flow_definition_path("orders/purchase"), "{ \"validate_order\": ")
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
         assert_predicate response, :error?
-        assert_match(/draft\.json is not valid JSON/, response.content.first[:text])
+        assert_match(/definition\.json is not valid JSON/, response.content.first[:text])
       end
 
-      def test_returns_existing_flow
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+      def test_returns_definition_with_start_action_first
+        write_flow("orders/purchase", { "charge_payment" => { "paid" => nil }, "validate_order" => { "valid" => "charge_payment" } })
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
         refute_predicate response, :error?
-        assert_equal({ "validate_order" => { "valid" => nil } }, flow_json(response)["graph"])
-        assert_equal "stable", flow_json(response)["phase"]
-      end
-
-      def test_returns_draft_in_draft_phase
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
-        write_flow_draft("orders/purchase", { "validate_order" => { "valid" => "charge_payment" }, "charge_payment" => {} })
-
-        response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
-
-        assert_equal "charge_payment", flow_json(response)["graph"]["validate_order"]["valid"]
-        assert_equal "draft", flow_json(response)["phase"]
-      end
-
-      def test_returns_approved_flow_in_approved_phase
-        write_flow_stable("orders/purchase", { "old" => { "valid" => nil } })
-        write_flow_approved("orders/purchase", { "validate_order" => { "valid" => nil } })
-
-        response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
-
-        assert_equal({ "validate_order" => { "valid" => nil } }, flow_json(response)["graph"])
-        assert_equal "approved", flow_json(response)["phase"]
+        assert_equal %w[validate_order charge_payment], flow_json(response)["definition"].keys
       end
 
       def test_returns_flow_tests_of_the_flow
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow("orders/purchase", { "validate_order" => { "valid" => nil } })
         write_flow_test("orders/purchase", "'test'")
         write_flow_test("orders/purchase", "'paths'", file_name: "paths_test.rb")
         write_flow_test("orders/refund", "'other'")
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
-        assert_equal({ "paths_test.rb" => "'paths'", "test.rb" => "'test'" }, flow_json(response)["flow_tests"])
+        assert_equal({ "paths_test.rb" => "'paths'", "test.rb" => "'test'" }, flow_json(response)["test_files"])
+      end
+
+      def test_returns_helper_files
+        write_flow("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow_test("orders/purchase", "{}", file_name: "fixture.json")
+
+        response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
+
+        assert_equal({ "fixture.json" => "{}" }, flow_json(response)["test_files"])
       end
 
       def test_returns_utf8_flow_tests_when_server_locale_is_not_utf8
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow("orders/purchase", { "validate_order" => { "valid" => nil } })
         write_flow_test("orders/purchase", "# Zamówienie musi być zapłacone\n")
 
         response = with_default_external(Encoding::US_ASCII) do
@@ -69,15 +57,15 @@ module SyncTraverse
         end
 
         refute_predicate response, :error?
-        assert_equal({ "test.rb" => "# Zamówienie musi być zapłacone\n" }, flow_json(response)["flow_tests"])
+        assert_equal({ "test.rb" => "# Zamówienie musi być zapłacone\n" }, flow_json(response)["test_files"])
       end
 
       def test_returns_empty_flow_tests_without_tests
-        write_flow_stable("orders/purchase", { "validate_order" => { "valid" => nil } })
+        write_flow("orders/purchase", { "validate_order" => { "valid" => nil } })
 
         response = GetFlow.call(flow_name: "orders/purchase", server_context: {})
 
-        assert_equal({}, flow_json(response)["flow_tests"])
+        assert_equal({}, flow_json(response)["test_files"])
       end
 
       def test_rejects_invalid_flow_name

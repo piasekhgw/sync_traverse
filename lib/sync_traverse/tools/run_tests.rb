@@ -2,58 +2,30 @@ require "open3"
 
 module SyncTraverse
   module Tools
-    class RunTests < ActionCodeBase
+    class RunTests < Base
       TESTS_RUNNER = File.expand_path("../tests_runner.rb", __dir__)
 
       tool_name "run_tests"
-      description "Runs tests in one application process. For every given flow it runs the results check, which verifies for every action of the flow that the results used by the flow are exactly the results declared in the RESULTS constant of the action, and the flow tests (test files in test/flows/<flow>/), which run the flow through the real actions with SyncTraverse::Runner. For every given action it runs the Minitest tests of the action (test files in the test directory of the action)."
-      input_schema(
-        properties: {
-          actions: {
-            type: "array",
-            items: { type: "string" },
-            description: "Names of the actions whose tests to run. Each must be a relative path; may be namespaced with a path, for example 'orders/validate_order'."
-          },
-          flows: {
-            type: "array",
-            items: { type: "string" },
-            description: "Names of the flows whose results check and flow tests to run. The approved flow is checked and executed if it exists, else the draft, else the stable flow. Each must be a relative path; may be namespaced with a path, for example 'orders/purchase'."
-          }
-        }
-      )
+      description "Validates the whole project in one application process: the results check of every flow, which verifies for every action of the flow that the action exists and that the results used by the flow are exactly the results declared in the RESULTS constant of the action; the tests of every action (test/actions/); and the flow tests of every flow (test/flows/), which run the flows through the real actions with SyncTraverse::Runner. Flows and actions may be inconsistent while you work; call this to find what still does not match."
 
       class << self
-        def call(server_context:, actions: [], flows: [])
-          actions = actions.uniq
-          flows = flows.uniq
-
-          with_valid_format(flow_names: flows, action_names: actions) do
-            missing_flows = flows.reject { |flow| File.exist?(current_flow_path(flow)) }
-            return error_response("Flow not found: #{missing_flows.join(", ")}") if missing_flows.any?
-
-            test_files = actions.to_h { |action| [action, action_test_files(action)] }
-            untested_actions = test_files.select { |_, files| files.empty? }.keys
-            return error_response("No tests found for action: #{untested_actions.join(", ")}") if untested_actions.any?
-
-            flow_tests = flows.flat_map { |flow| flow_test_files(flow).map { |file| flow_test_path(flow, file) } }
-
-            run(
-              root_dir: SyncTraverse.config.root_dir,
-              actions_dir: File.expand_path(actions_dir),
-              flows: flows.to_h { |flow| [flow, File.expand_path(current_flow_path(flow))] },
-              test_files: (test_files.values.flatten + flow_tests).map { |file| File.expand_path(file) }
-            )
+        def call(server_context:)
+          flows = Dir.glob(flow_definition_path("**")).to_h do |path|
+            [File.dirname(path).delete_prefix("#{flows_dir}/"), path]
           end
-        end
 
-        def actions_with_tests(action_names)
-          action_names.reject { |action| action_test_files(action).empty? }
+          run(
+            root_dir: SyncTraverse.config.root_dir,
+            actions_dir: actions_dir,
+            flows: flows,
+            test_files: test_files(action_tests_dir) + test_files(flow_tests_dir)
+          )
         end
 
         private
 
-        def action_test_files(action)
-          action_files(action).filter_map { |file| action_file_path(action, file) if test_file?(file) }
+        def test_files(dir)
+          Dir.glob(File.join(dir, "**", "*.rb")).select { |path| test_file?(File.basename(path)) }.sort
         end
 
         def run(options)

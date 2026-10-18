@@ -41,28 +41,12 @@ module SyncTraverse
       SyncTraverse.config.flow_tests_dir
     end
 
-    def flow_stable_path(flow_name)
-      File.join(flows_dir, flow_name, "stable.json")
+    def flow_definition_path(flow_name)
+      File.join(flows_dir, flow_name, "definition.json")
     end
 
-    def flow_stable_diagram_path(flow_name)
-      File.join(flows_dir, flow_name, "stable.mmd")
-    end
-
-    def flow_draft_path(flow_name)
-      File.join(flows_dir, flow_name, "draft.json")
-    end
-
-    def flow_draft_diagram_path(flow_name)
-      File.join(flows_dir, flow_name, "draft.mmd")
-    end
-
-    def flow_approved_path(flow_name)
-      File.join(flows_dir, flow_name, "approved.json")
-    end
-
-    def flow_approved_diagram_path(flow_name)
-      File.join(flows_dir, flow_name, "approved.mmd")
+    def flow_diagram_path(flow_name)
+      File.join(flows_dir, flow_name, "definition.mmd")
     end
 
     def action_path(action_name, file_name = "action.rb")
@@ -73,16 +57,8 @@ module SyncTraverse
       File.join(action_tests_dir, action_name, file_name)
     end
 
-    def write_flow_stable(flow_name, graph)
-      write_code_file(flow_stable_path(flow_name), JSON.generate(graph))
-    end
-
-    def write_flow_draft(flow_name, graph)
-      write_code_file(flow_draft_path(flow_name), JSON.generate(graph))
-    end
-
-    def write_flow_approved(flow_name, graph)
-      write_code_file(flow_approved_path(flow_name), JSON.generate(graph))
+    def write_flow(flow_name, graph)
+      write_code_file(flow_definition_path(flow_name), JSON.generate(graph))
     end
 
     def write_action_file(action_name, code, file_name: "action.rb")

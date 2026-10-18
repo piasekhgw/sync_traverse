@@ -3,7 +3,7 @@ require "test_helper"
 module SyncTraverse
   class RunnerTest < SyncTraverse::TestCase
     def test_runs_flow_following_results_until_terminal_action
-      write_flow_stable(
+      write_flow(
         "orders/purchase",
         {
           "orders/validate_order" => { "valid" => "orders/charge_payment", "invalid" => nil },

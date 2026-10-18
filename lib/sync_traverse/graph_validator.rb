@@ -10,12 +10,22 @@ module SyncTraverse
     def call
       return [] if flow.empty?
 
-      [acyclic_error, source_action_error].compact
+      [undefined_targets_error, actions_without_results_error, acyclic_error, source_action_error].compact
     end
 
     private
 
     attr_reader :flow
+
+    def undefined_targets_error
+      undefined_targets = flow.values.flat_map(&:values).compact.uniq - flow.keys
+      "Target action(s) not defined in the flow: #{undefined_targets.join(", ")}" if undefined_targets.any?
+    end
+
+    def actions_without_results_error
+      actions = flow.select { |_, results| results.empty? }.keys
+      "Action(s) without results: #{actions.join(", ")}" if actions.any?
+    end
 
     def acyclic_error
       "Flow must be acyclic" unless graph.acyclic?

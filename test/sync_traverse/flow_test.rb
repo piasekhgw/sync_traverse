@@ -2,36 +2,31 @@ require "test_helper"
 
 module SyncTraverse
   class FlowTest < Minitest::Test
-    def test_to_h_puts_start_action_first
-      flow = Flow.new
-      flow.add_transitions([{ source: "B", target: "C", source_result: "ok" }])
-      flow.add_transitions([{ source: "A", target: "B", source_result: "ok" }])
-
-      assert_equal %w[A B C], flow.to_h.keys
-    end
-
-    def test_to_h_keeps_order_of_other_actions
-      flow = Flow.new
-      flow.add_transitions(
-        [
-          { source: "C", target: "D", source_result: "ok" },
-          { source: "B", target: "C", source_result: "ok" },
-          { source: "A", target: "B", source_result: "ok" }
-        ]
+    def test_to_h_puts_start_action_first_and_keeps_order_of_other_actions
+      flow = Flow.new(
+        "C" => { "ok" => "D" },
+        "B" => { "ok" => "C" },
+        "D" => { "ok" => nil },
+        "A" => { "ok" => "B" }
       )
 
-      assert_equal %w[A C D B], flow.to_h.keys
+      assert_equal %w[A C B D], flow.to_h.keys
     end
 
-    def test_to_h_does_not_change_definition
-      flow = Flow.new
-      flow.add_transitions([{ source: "B", target: "C", source_result: "ok" }])
-      flow.add_transitions([{ source: "A", target: "B", source_result: "ok" }])
-      flow.to_h
+    def test_to_mermaid_labels_transitions_and_gives_every_end_its_own_node
+      flow = Flow.new(
+        "orders/validate_order" => { "valid" => "orders/charge_payment", "invalid" => nil },
+        "orders/charge_payment" => { "paid" => nil }
+      )
 
-      flow.add_transitions([{ source: "C", target: nil, source_result: "ok" }])
-
-      assert_equal({ "ok" => nil }, flow.to_h["C"])
+      assert_equal <<~MERMAID, flow.to_mermaid
+        flowchart TD
+          orders/validate_order[orders/validate_order]
+          orders/charge_payment[orders/charge_payment]
+          orders/validate_order -->|valid| orders/charge_payment
+          orders/validate_order -->|invalid| end1((End))
+          orders/charge_payment -->|paid| end2((End))
+      MERMAID
     end
   end
 end

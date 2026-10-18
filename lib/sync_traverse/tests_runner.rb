@@ -9,9 +9,7 @@ require_relative "runner"
 
 options = JSON.parse(ARGV.shift)
 
-# Flow tests run the graph being implemented: approved, else draft, else stable.
 SyncTraverse.config = SyncTraverse::Config.new(options.fetch("root_dir"))
-SyncTraverse.config.flow_phases = SyncTraverse::Config::FLOW_PHASES
 
 options.fetch("flows").each do |flow_name, flow_file_path|
   SyncTraverse::FlowResultsTest.build(flow_name, flow_file_path, options.fetch("actions_dir"))

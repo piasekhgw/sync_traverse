@@ -3,212 +3,147 @@ require "test_helper"
 module SyncTraverse
   module Tools
     class UpdateFlowTest < SyncTraverse::TestCase
-      def test_adds_transitions_to_draft_and_creates_referenced_actions
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [
-            { source: "validate_order", target: "charge_payment", source_result: "valid" },
-            { source: "validate_order", target: nil, source_result: "invalid" },
-            { source: "charge_payment", target: nil, source_result: "paid" }
-          ],
-          server_context: {}
-        )
+      PURCHASE = {
+        "orders/validate_order" => { "valid" => "orders/charge_payment", "invalid" => nil },
+        "orders/charge_payment" => { "paid" => nil }
+      }.freeze
+
+      def test_saves_definition_with_start_action_first_and_generated_diagram
+        response = update(definition: PURCHASE.to_a.reverse.to_h)
 
         assert_equal "Success", response.content.first[:text]
-        assert_equal(
-          {
-            "validate_order" => { "valid" => "charge_payment", "invalid" => nil },
-            "charge_payment" => { "paid" => nil }
-          },
-          JSON.parse(File.read(flow_draft_path("orders/purchase")))
-        )
-        refute_path_exists flow_stable_path("orders/purchase")
+        assert_equal PURCHASE.keys, JSON.parse(File.read(flow_definition_path("orders/purchase"))).keys
+        assert_equal Flow.new(PURCHASE).to_mermaid, File.read(flow_diagram_path("orders/purchase"))
       end
 
-      def test_first_update_copies_stable_flow_to_draft_and_leaves_it_untouched
-        write_flow_stable("orders/purchase", { "a" => { "ok" => "b" }, "b" => { "done" => nil } })
+      def test_replaces_whole_definition
+        write_flow("orders/purchase", PURCHASE)
 
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [{ source: "b", target: "c", source_result: "other" }],
-          server_context: {}
+        update(definition: { "orders/charge_payment" => { "paid" => nil, "declined" => nil } })
+
+        assert_equal(
+          { "orders/charge_payment" => { "paid" => nil, "declined" => nil } },
+          JSON.parse(File.read(flow_definition_path("orders/purchase")))
         )
+      end
+
+      def test_accepts_symbol_keys
+        response = update(definition: { "orders/validate_order": { valid: nil } })
 
         refute_predicate response, :error?
-        assert_equal(
-          { "a" => { "ok" => "b" }, "b" => { "done" => nil, "other" => "c" }, "c" => {} },
-          JSON.parse(File.read(flow_draft_path("orders/purchase")))
-        )
-        assert_equal({ "a" => { "ok" => "b" }, "b" => { "done" => nil } }, JSON.parse(File.read(flow_stable_path("orders/purchase"))))
+        assert_equal({ "orders/validate_order" => { "valid" => nil } }, JSON.parse(File.read(flow_definition_path("orders/purchase"))))
       end
 
-      def test_updates_existing_draft_instead_of_stable_flow
-        write_flow_stable("orders/purchase", { "a" => { "ok" => nil } })
-        write_flow_draft("orders/purchase", { "a" => { "ok" => "b" }, "b" => {} })
+      def test_writes_definition_and_tests_in_one_call
+        update(definition: PURCHASE, test_files: { "test.rb" => "'test'", "paths_test.rb" => "'paths'" })
 
-        UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [{ source: "b", target: nil, source_result: "done" }],
-          server_context: {}
-        )
-
-        assert_equal(
-          { "a" => { "ok" => "b" }, "b" => { "done" => nil } },
-          JSON.parse(File.read(flow_draft_path("orders/purchase")))
-        )
+        assert_path_exists flow_definition_path("orders/purchase")
+        assert_equal "'test'", File.read(flow_test_path("orders/purchase"))
+        assert_equal "'paths'", File.read(flow_test_path("orders/purchase", "paths_test.rb"))
       end
 
-      def test_rejects_update_in_approved_phase
-        write_flow_approved("orders/purchase", { "a" => { "ok" => nil } })
+      def test_writes_only_tests_of_existing_flow_and_keeps_unlisted_files
+        write_flow("orders/purchase", PURCHASE)
+        write_flow_test("orders/purchase", "'old'")
+        write_flow_test("orders/purchase", "'paths'", file_name: "paths_test.rb")
 
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [{ source: "a", target: nil, source_result: "other" }],
-          server_context: {}
-        )
+        update(test_files: { "test.rb" => "'new'" })
+
+        assert_equal "'new'", File.read(flow_test_path("orders/purchase"))
+        assert_equal "'paths'", File.read(flow_test_path("orders/purchase", "paths_test.rb"))
+        refute_path_exists flow_diagram_path("orders/purchase")
+      end
+
+      def test_null_deletes_test_file_and_empty_directories
+        write_flow("orders/purchase", PURCHASE)
+        write_flow_test("orders/purchase", "'test'")
+
+        update(test_files: { "test.rb" => nil })
+
+        assert_empty Dir.children(flow_tests_dir)
+      end
+
+      def test_rejects_tests_of_flow_that_does_not_exist
+        response = update(test_files: { "test.rb" => "'test'" })
 
         assert_predicate response, :error?
-        assert_equal(
-          "Flow orders/purchase is approved; call reopen_draft to change the graph",
-          response.content.first[:text]
-        )
-        assert_equal({ "a" => { "ok" => nil } }, JSON.parse(File.read(flow_approved_path("orders/purchase"))))
+        assert_equal "Flow not found: orders/purchase; pass its definition", response.content.first[:text]
+        refute_path_exists flow_test_path("orders/purchase")
       end
 
-      def test_removes_transitions_before_adding
-        write_flow_stable("orders/purchase", { "a" => { "old" => "b" }, "b" => {} })
+      def test_writes_and_deletes_helper_files
+        update(definition: PURCHASE, test_files: { "test.rb" => "'test'", "fixture.json" => "{}" })
+        update(test_files: { "test.rb" => nil })
 
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          remove_transitions: [{ source: "a", target: "b", source_result: "old" }],
-          add_transitions: [{ source: "a", target: nil, source_result: "old" }],
-          server_context: {}
-        )
-
-        refute_predicate response, :error?
-        assert_equal({ "a" => { "old" => nil } }, JSON.parse(File.read(flow_draft_path("orders/purchase"))))
+        refute_path_exists flow_test_path("orders/purchase")
+        assert_equal "{}", File.read(flow_test_path("orders/purchase", "fixture.json"))
       end
 
-      def test_keeps_empty_draft_when_no_actions_left_in_existing_flow
-        write_flow_stable("orders/purchase", { "a" => { "done" => nil } })
-
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          remove_transitions: [{ source: "a", target: nil, source_result: "done" }],
-          server_context: {}
-        )
-
-        assert_equal "Success. Draft has no actions left; promoting it deletes the flow.", response.content.first[:text]
-        assert_equal({}, JSON.parse(File.read(flow_draft_path("orders/purchase"))))
-        assert_path_exists flow_stable_path("orders/purchase")
-      end
-
-      def test_creates_no_draft_for_new_flow_without_actions
-        response = UpdateFlow.call(flow_name: "orders/purchase", server_context: {})
-
-        refute_predicate response, :error?
-        assert_equal "Success. Flow has no actions; there is nothing to draft.", response.content.first[:text]
-        refute File.directory?(File.join(flows_dir, "orders"))
-      end
-
-      def test_discards_draft_when_new_flow_has_no_actions_left
-        write_flow_draft("orders/purchase", { "a" => { "done" => nil } })
-        File.write(flow_draft_diagram_path("orders/purchase"), "flowchart TD")
-
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          remove_transitions: [{ source: "a", target: nil, source_result: "done" }],
-          server_context: {}
-        )
-
-        refute_predicate response, :error?
-        refute File.directory?(File.join(flows_dir, "orders"))
-      end
-
-      def test_rejects_cycle_without_saving
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [
-            { source: "a", target: "b", source_result: "ok" },
-            { source: "b", target: "a", source_result: "back" }
-          ],
-          server_context: {}
-        )
+      def test_rejects_invalid_file_names
+        response = update(definition: PURCHASE, test_files: { "../test.rb" => "'test'" })
 
         assert_predicate response, :error?
+        refute_path_exists flow_definition_path("orders/purchase")
+      end
+
+      def test_rejects_invalid_graph_without_saving_anything
+        write_flow("orders/purchase", PURCHASE)
+
+        response = update(
+          definition: { "a" => { "ok" => "b" }, "b" => { "back" => "a" }, "c" => {}, "d" => { "ok" => "missing" } },
+          test_files: { "test.rb" => "'test'" }
+        )
+
         assert_equal(
-          "Flow must be acyclic\nFlow must have exactly one source action, found: none",
+          [
+            "Target action(s) not defined in the flow: missing",
+            "Action(s) without results: c",
+            "Flow must be acyclic",
+            "Flow must have exactly one source action, found: c, d"
+          ].join("\n"),
           response.content.first[:text]
         )
-        refute_path_exists flow_draft_path("orders/purchase")
+        assert_equal PURCHASE, JSON.parse(File.read(flow_definition_path("orders/purchase")))
+        refute_path_exists flow_test_path("orders/purchase")
       end
 
-      def test_allows_multiple_results_leading_to_same_action
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [
-            { source: "a", target: "b", source_result: "x" },
-            { source: "a", target: "b", source_result: "y" }
-          ],
-          server_context: {}
-        )
+      def test_allows_several_results_leading_to_same_target_or_end
+        response = update(definition: { "a" => { "x" => "b", "y" => "b" }, "b" => { "created" => nil, "invalid" => nil } })
 
         refute_predicate response, :error?
       end
 
-      def test_allows_multiple_results_leading_to_null
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [
-            { source: "persist_user", target: nil, source_result: "created" },
-            { source: "persist_user", target: nil, source_result: "invalid" }
-          ],
-          server_context: {}
-        )
+      def test_empty_definition_deletes_flow_diagram_and_tests
+        update(definition: PURCHASE, test_files: { "test.rb" => "'test'" })
 
-        refute_predicate response, :error?
-        assert_equal({ "created" => nil, "invalid" => nil }, JSON.parse(File.read(flow_draft_path("orders/purchase")))["persist_user"])
+        response = update(definition: {})
+
+        assert_equal "Success. The definition is empty; flow orders/purchase and its test files were deleted.", response.content.first[:text]
+        assert_empty Dir.children(flows_dir)
+        assert_empty Dir.children(flow_tests_dir)
       end
 
-      def test_allows_same_target_from_different_actions
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [
-            { source: "a", target: "c", source_result: "x" },
-            { source: "a", target: "b", source_result: "y" },
-            { source: "b", target: "c", source_result: "z" }
-          ],
-          server_context: {}
-        )
+      def test_rejects_tests_together_with_empty_definition
+        write_flow("orders/purchase", PURCHASE)
 
-        refute_predicate response, :error?
-      end
-
-      def test_rejects_conflicting_result_target
-        write_flow_stable("orders/purchase", { "a" => { "ok" => "b" }, "b" => {} })
-
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [{ source: "a", target: "c", source_result: "ok" }],
-          server_context: {}
-        )
+        response = update(definition: {}, test_files: { "test.rb" => "'test'" })
 
         assert_predicate response, :error?
-        assert_equal(
-          "Result 'ok' of action 'a' already targets 'b'; remove that transition first",
-          response.content.first[:text]
-        )
+        assert_equal "Cannot write test files while deleting flow orders/purchase with an empty definition", response.content.first[:text]
+        assert_path_exists flow_definition_path("orders/purchase")
       end
 
-      def test_rejects_invalid_action_name
-        response = UpdateFlow.call(
-          flow_name: "orders/purchase",
-          add_transitions: [{ source: "../escape", target: nil, source_result: "ok" }],
-          server_context: {}
-        )
+      def test_rejects_invalid_names
+        response = UpdateFlow.call(flow_name: "orders/purchase", definition: { "../escape" => { "ok" => nil } }, server_context: {})
 
         assert_predicate response, :error?
         assert_equal "Invalid name(s): ../escape", response.content.first[:text]
+      end
+
+      private
+
+      def update(**arguments)
+        UpdateFlow.call(flow_name: "orders/purchase", server_context: {}, **arguments)
       end
     end
   end

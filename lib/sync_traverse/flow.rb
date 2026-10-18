@@ -1,7 +1,5 @@
 module SyncTraverse
   class Flow
-    class ConflictError < StandardError; end
-
     def initialize(definition = {})
       @definition = definition
     end
@@ -12,37 +10,19 @@ module SyncTraverse
       (start + rest).to_h
     end
 
-    def add_transitions(transitions)
-      transitions.each do |transition|
-        source, target, result = transition.values_at(:source, :target, :source_result)
-        if definition[source]&.key?(result) && definition[source][result] != target
-          raise ConflictError,
-                "Result '#{result}' of action '#{source}' already targets '#{definition[source][result]}'; remove that transition first"
-        end
-
-        definition[source] ||= {}
-        definition[target] ||= {} unless target.nil?
-        definition[source][result] = target
+    # Mermaid flowchart: transitions labeled with results, every null target a separate end node.
+    def to_mermaid
+      ends = 0
+      nodes = to_h.keys.map { |action| "  #{action}[#{action}]" }
+      edges = to_h.flat_map do |action, results|
+        results.map { |result, target| "  #{action} -->|#{result}| #{target || "end#{ends += 1}((End))"}" }
       end
-    end
 
-    def remove_transitions(transitions)
-      transitions.each do |transition|
-        source, target, result = transition.values_at(:source, :target, :source_result)
-        definition[source].delete(result)
-        remove_action_if_isolated(source)
-        remove_action_if_isolated(target) unless target.nil?
-      end
+      "#{["flowchart TD", *nodes, *edges].join("\n")}\n"
     end
 
     private
 
     attr_reader :definition
-
-    def remove_action_if_isolated(action)
-      return if definition[action].any? || definition.each_value.any? { |targets| targets.value?(action) }
-
-      definition.delete(action)
-    end
   end
 end
