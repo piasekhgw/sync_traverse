@@ -153,6 +153,7 @@ An action must not use application-owned code outside its directory: global appl
 
 Avoid duplication through meaningful shared actions, not through hidden shared implementation abstractions.
 
+- Before creating an action, look in `app/actions/` for an existing action that performs the same operation and use it instead; if it almost fits, extend it rather than create a near-duplicate.
 - If duplicated logic is a meaningful, self-contained application operation that makes sense as a separate step in the graph, extract it into its own action and use that action in every flow that needs it.
 - Otherwise it is an implementation detail (types, mappers, clients, private methods): keep it local in each action, even if it is duplicated between actions. Never create shared services, helpers, repositories, base classes or modules only to remove duplication.
 - Before changing a shared action, find every flow that uses it (search `app/flows/` for the action name) and assess how the change affects each of them.
