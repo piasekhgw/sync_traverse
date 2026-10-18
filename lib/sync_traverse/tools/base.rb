@@ -46,9 +46,7 @@ module SyncTraverse
         end
 
         def dir_file_names(dir)
-          Dir.glob(File.join(dir, "*")).filter_map do |path|
-            File.basename(path) if File.file?(path)
-          end
+          Dir.glob(File.join(dir, "*")).select { |path| File.file?(path) }.map { |path| File.basename(path) }
         end
 
         def test_file?(file_name)

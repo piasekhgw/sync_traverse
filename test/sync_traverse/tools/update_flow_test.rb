@@ -113,6 +113,19 @@ module SyncTraverse
         refute_predicate response, :error?
       end
 
+      def test_rejects_same_result_ending_flow_in_several_actions
+        response = update(
+          definition: {
+            "a" => { "x" => "b", "y" => "c" },
+            "b" => { "enqueued" => nil, "failed" => nil },
+            "c" => { "enqueued" => nil, "skipped" => "b" }
+          }
+        )
+
+        assert_predicate response, :error?
+        assert_equal "Result(s) ending the flow in more than one action: enqueued", response.content.first[:text]
+      end
+
       def test_empty_definition_deletes_flow_diagram_and_tests
         update(definition: PURCHASE, test_files: { "test.rb" => "'test'" })
 

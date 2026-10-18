@@ -2,7 +2,7 @@ module SyncTraverse
   module Tools
     class UpdateFlow < FlowBase
       tool_name "update_flow"
-      description "Replaces the definition of the flow and/or creates, updates or deletes its test files. The definition is saved to app/flows/<flow>/definition.json together with a Mermaid diagram generated from it (definition.mmd); SyncTraverse::Runner executes the saved definition right away. The definition is validated as a single graph: every target must be an action of the flow, every action needs at least one result, and the flow must be acyclic with exactly one source action, from which every action is reachable. It is not checked against the action code: run_tests checks that the results of every action match its RESULTS. Nothing is saved when validation fails. An empty definition deletes the flow, its diagram and all its test files in test/flows/<flow>/. It never creates or deletes action code."
+      description "Replaces the definition of the flow and/or creates, updates or deletes its test files. The definition is saved to app/flows/<flow>/definition.json together with a Mermaid diagram generated from it (definition.mmd); SyncTraverse::Runner executes the saved definition right away. The definition is validated as a single graph: every target must be an action of the flow, every action needs at least one result, no result may end the flow (null target) in more than one action, and the flow must be acyclic with exactly one source action, from which every action is reachable. It is not checked against the action code: run_tests checks that the results of every action match its RESULTS. Nothing is saved when validation fails. An empty definition deletes the flow, its diagram and all its test files in test/flows/<flow>/. It never creates or deletes action code."
       input_schema(
         properties: {
           flow_name: FLOW_NAME_SCHEMA,
@@ -58,7 +58,9 @@ module SyncTraverse
           return ["Flow not found: #{flow_name}; pass its definition"] if definition.nil? && !flow_exists?(flow_name)
           return ["Cannot write test files while deleting flow #{flow_name} with an empty definition"] if definition&.empty? && test_files.any?
 
-          definition ? GraphValidator.new(definition).call : []
+          return [] unless definition
+
+          GraphValidator.new(definition).call
         end
 
         def update_test_files(flow_name, test_files)

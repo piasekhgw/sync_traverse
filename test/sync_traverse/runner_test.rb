@@ -37,7 +37,7 @@ module SyncTraverse
 
       context = { steps: [] }
 
-      assert_equal "paid", Runner.call("orders/purchase", context)
+      assert_equal :paid, Runner.call("orders/purchase", context)
       assert_equal %i[validate_order charge_payment], context[:steps]
     end
   end

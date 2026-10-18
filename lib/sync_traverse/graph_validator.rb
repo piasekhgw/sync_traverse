@@ -10,7 +10,13 @@ module SyncTraverse
     def call
       return [] if flow.empty?
 
-      [undefined_targets_error, actions_without_results_error, acyclic_error, source_action_error].compact
+      [
+        undefined_targets_error,
+        actions_without_results_error,
+        duplicate_end_results_error,
+        acyclic_error,
+        source_action_error
+      ].compact
     end
 
     private
@@ -19,16 +25,30 @@ module SyncTraverse
 
     def undefined_targets_error
       undefined_targets = flow.values.flat_map(&:values).compact.uniq - flow.keys
-      "Target action(s) not defined in the flow: #{undefined_targets.join(", ")}" if undefined_targets.any?
+      return if undefined_targets.empty?
+
+      "Target action(s) not defined in the flow: #{undefined_targets.join(", ")}"
     end
 
     def actions_without_results_error
       actions = flow.select { |_, results| results.empty? }.keys
-      "Action(s) without results: #{actions.join(", ")}" if actions.any?
+      return if actions.empty?
+
+      "Action(s) without results: #{actions.join(", ")}"
+    end
+
+    def duplicate_end_results_error
+      end_results = flow.values.flat_map { |results| results.select { |_, target| target.nil? }.keys }
+      duplicates = end_results.tally.select { |_, count| count > 1 }.keys
+      return if duplicates.empty?
+
+      "Result(s) ending the flow in more than one action: #{duplicates.join(", ")}"
     end
 
     def acyclic_error
-      "Flow must be acyclic" unless graph.acyclic?
+      return if graph.acyclic?
+
+      "Flow must be acyclic"
     end
 
     def source_action_error

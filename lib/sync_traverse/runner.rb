@@ -16,8 +16,8 @@ module SyncTraverse
       result = nil
 
       while action_name
-        result = run_action(action_name, context).to_s
-        action_name = flow.fetch(action_name).fetch(result)
+        result = run_action(action_name, context)
+        action_name = flow.fetch(action_name).fetch(result.to_s)
       end
 
       result

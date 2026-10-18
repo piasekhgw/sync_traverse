@@ -18,6 +18,7 @@ A valid flow must:
 - have exactly one source action, from which every action is reachable
 - have at least one outgoing transition for every action
 - have a transition for every result an action can return
+- end with distinct results: two actions must not end the flow (`null` target) with the same result, because the caller learns how the flow ended only from the returned result
 
 An action is an interface: its results describe the distinct ways its operation can end, such as `valid`/`invalid`, `found`/`not_found` or `paid`/`declined`, independently of what the flow does with them. Give every distinct result of the operation its own result, even if several results currently lead to the same target, including separate `null` ends: prefer `persist_user --created--> null` and `persist_user --invalid--> null` over a single `done`. Do not invent results the operation cannot produce: an operation with a single possible result returns one result, for example `done`.
 
@@ -127,7 +128,7 @@ test/actions/
 
 # Invoking a flow
 
-Run a flow from the entrypoint with `SyncTraverse::Runner`. Pass the flow name and the `context` Hash. It returns the result of the last action as a String, which tells the caller how the flow ended; the caller reads the output of the actions from the `context` it passed in.
+Run a flow from the entrypoint with `SyncTraverse::Runner`. Pass the flow name and the `context` Hash. It returns the result of the last action (a Symbol), which tells the caller how the flow ended; the caller reads the output of the actions from the `context` it passed in.
 
 ```ruby
 context = { order_id: params[:order_id] }

@@ -91,7 +91,7 @@ module SyncTraverse
         write_context_action("charge_payment", :paid, "context[:charged] = context.fetch(:total)")
         write_flow_test("orders/purchase", purchase_flow_test(<<~RUBY))
           context = {}
-          assert_equal "paid", SyncTraverse::Runner.call("orders/purchase", context)
+          assert_equal :paid, SyncTraverse::Runner.call("orders/purchase", context)
           assert_equal 100, context[:charged]
         RUBY
 
@@ -106,7 +106,7 @@ module SyncTraverse
         write_context_action("price_order", :priced, "context[:total_cents] = 100")
         write_context_action("charge_payment", :paid, "context[:charged] = context.fetch(:total)")
         write_flow_test("orders/purchase", purchase_flow_test(<<~RUBY))
-          assert_equal "paid", SyncTraverse::Runner.call("orders/purchase", {})
+          assert_equal :paid, SyncTraverse::Runner.call("orders/purchase", {})
         RUBY
 
         response = run_tests
