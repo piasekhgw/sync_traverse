@@ -7,6 +7,7 @@ USAGE = <<~TEXT
   Usage:
     sync_traverse install copilot|claude
     sync_traverse mcp
+    sync_traverse test
 TEXT
 
 case ARGV.shift
@@ -27,6 +28,15 @@ when "install"
     SyncTraverse::Installer.new.call(ARGV.first)
   rescue ArgumentError => e
     abort e.message
+  end
+when "test"
+  response = SyncTraverse::Tools::RunTests.call(server_context: nil)
+  output = response.content.map { |item| item[:text] }.join("\n")
+
+  if response.error?
+    abort output
+  else
+    puts output
   end
 else
   abort USAGE
