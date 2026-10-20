@@ -68,7 +68,9 @@ test/flows/orders/purchase/test.rb
 
 ## Installation
 
-You need Ruby 3.0+, a Rails app and GitHub Copilot or Claude Code.
+You need Ruby 3.0+, a Rails app and GitHub Copilot or Claude Code. It was developed and tested
+mainly with **GitHub Copilot** in VS Code. The Claude Code setup is generated from the same prompt,
+but it was not tested and may not work fully.
 
 ```ruby
 # Gemfile
