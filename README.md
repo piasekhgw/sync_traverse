@@ -88,16 +88,35 @@ need.
 
 > The examples are illustrative and shortened for the README.
 
-Before:
+Before: a typical "registration with an invitation" action. Early returns, a swallowed exception,
+an external API call and a conditional notification, all in one method:
 
 ```ruby
 class UsersController < ApplicationController
   def create
-    @user = User.new(user_params)
+    invitation = Invitation.find_by(token: params[:invitation_token])
+    if invitation.nil? || invitation.expired?
+      redirect_to root_path, alert: "Invitation is invalid or expired."
+      return
+    end
 
+    @user = User.new(user_params.merge(company_id: invitation.company_id))
     unless @user.save
       render :new, status: :unprocessable_entity
       return
+    end
+
+    invitation.update!(accepted_at: Time.current, user: @user)
+
+    begin
+      customer = Stripe::Customer.create(email: @user.email)
+      @user.update!(stripe_customer_id: customer.id)
+    rescue Stripe::StripeError => e
+      Rails.logger.error(e.message)
+    end
+
+    if @user.company.seats_left.zero?
+      AdminMailer.with(company: @user.company).seats_exhausted.deliver_later
     end
 
     ActivationMailer.with(user: @user).activation_email.deliver_later
@@ -110,34 +129,52 @@ Prompt:
 
 > Refactor UsersController#create into the flow users/register and wire it into the controller.
 
-The agent splits the method into two actions. The early return becomes the `invalid` result:
+The agent splits the method along its branches, early returns and side effects. Every way the
+process can go is now an edge on the diagram, including the Stripe error that the old code silently
+swallowed (`failed`):
 
 ```mermaid
 flowchart TD
+  users/load_invitation[users/load_invitation]
+  users/validate_invitation[users/validate_invitation]
   users/create_user[users/create_user]
+  users/accept_invitation[users/accept_invitation]
+  users/create_stripe_customer[users/create_stripe_customer]
+  users/check_company_seats[users/check_company_seats]
+  users/notify_admin_seats_exhausted[users/notify_admin_seats_exhausted]
   users/schedule_activation_email[users/schedule_activation_email]
-  users/create_user -->|created| users/schedule_activation_email
-  users/create_user -->|invalid| end1((End))
-  users/schedule_activation_email -->|scheduled| end2((End))
+  users/load_invitation -->|found| users/validate_invitation
+  users/load_invitation -->|not_found| end1((End))
+  users/validate_invitation -->|valid| users/create_user
+  users/validate_invitation -->|expired| end2((End))
+  users/create_user -->|created| users/accept_invitation
+  users/create_user -->|invalid| end3((End))
+  users/accept_invitation -->|done| users/create_stripe_customer
+  users/create_stripe_customer -->|created| users/check_company_seats
+  users/create_stripe_customer -->|failed| users/check_company_seats
+  users/check_company_seats -->|seats_left| users/schedule_activation_email
+  users/check_company_seats -->|no_seats_left| users/notify_admin_seats_exhausted
+  users/notify_admin_seats_exhausted -->|enqueued| users/schedule_activation_email
+  users/schedule_activation_email -->|scheduled| end4((End))
 ```
 
+Each step is a small action with its own models and tests. For example, the Stripe call:
+
 ```ruby
-# app/actions/users/create_user/action.rb
+# app/actions/users/create_stripe_customer/action.rb
 module Users
-  module CreateUser
+  module CreateStripeCustomer
     class Action
-      RESULTS = %i[created invalid].freeze
+      RESULTS = %i[created failed].freeze
 
       def self.call(context)
-        user = User.new(context[:user_params])
-
-        if user.save
-          context[:user_id] = user.id
-          :created
-        else
-          context[:errors] = user.errors.full_messages
-          :invalid
-        end
+        user = User.find(context[:user_id]) # Users::CreateStripeCustomer::User, local to this action
+        customer = Stripe::Customer.create(email: user.email)
+        user.update!(stripe_customer_id: customer.id)
+        :created
+      rescue Stripe::StripeError => e
+        Rails.logger.error(e.message)
+        :failed
       end
     end
   end
@@ -149,11 +186,13 @@ The controller after:
 ```ruby
 class UsersController < ApplicationController
   def create
-    context = { user_params: user_params.to_h }
+    context = { invitation_token: params[:invitation_token], user_params: user_params.to_h }
 
     case SyncTraverse::Runner.call("users/register", context)
     when :scheduled
       redirect_to root_path, notice: "Check your inbox to activate your account."
+    when :not_found, :expired
+      redirect_to root_path, alert: "Invitation is invalid or expired."
     when :invalid
       @errors = context[:errors]
       render :new, status: :unprocessable_entity
@@ -162,9 +201,19 @@ class UsersController < ApplicationController
 end
 ```
 
-The original logic is copied into the actions (with their own `User` model and mailer), not
-wrapped. The old code stays untouched until you decide to remove it. The agent also writes tests
-for both actions and for the whole flow.
+What you get:
+
+- **The process is readable without reading the code.** The diagram shows four ways it can end
+  and the branches in between, so a reviewer can spot that a Stripe failure doesn't stop the
+  registration.
+- **Behavior is preserved.** The logic is copied into the actions, not wrapped, and the old code
+  stays untouched until you decide to remove it.
+- **Small, focused tests.** Only `create_stripe_customer` stubs Stripe; every other action is tested
+  against the real database, and flow tests cover every path through the graph.
+- **Legacy bugs are reported, not silently fixed.** For example, the agent points out that creating
+  the user and accepting the invitation are not wrapped in a transaction, and suggests a fix.
+- **Future changes stay local.** Adding a step (say, a welcome credit) is one new action and one
+  new edge, visible as a small diff in `definition.json` and on the diagram.
 
 ## Example 2: a new flow
 
